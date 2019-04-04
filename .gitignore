@@ -1,0 +1,18 @@
+# Light Curve Data
+csp/data
+
+# OS Files
+*.DS_Store
+
+# IDE files
+.idea/
+
+# Python build files
+*__pycache__*
+*.pyc
+
+# Jupyter Checkpoints
+*.ipynb_checkpoints
+
+# Testing cache files
+.pytest_cache/
