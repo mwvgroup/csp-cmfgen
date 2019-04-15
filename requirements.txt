@@ -1,5 +1,6 @@
 astropy
 numpy
 requests
+scipy
 sncosmo
 tqdm

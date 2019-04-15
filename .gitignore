@@ -3,6 +3,8 @@ csp/data/DR3
 csp/data/filters
 csp/data/Krisciunas_2013
 
+models/*.npz
+
 # OS Files
 *.DS_Store
 
