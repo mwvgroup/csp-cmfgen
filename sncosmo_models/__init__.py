@@ -8,6 +8,19 @@ SubChandra_1: A Sub-Chandrasekhar model for 1.04 solar mass progenitors
 SubChandra_2: A Sub-Chandrasekhar model for 1.02 solar mass progenitors
 Chandra: A Chandrasekhar model for 1.4 solar mass progenitors
 SuperChandra: A Super-Chandrasekhar model for 1.7 solar mass progenitors
+
+To use the model:
+    import sncosmo
+
+    # create a model
+    model = sncosmo.Model(source=Chandra)
+
+    # run the fit
+    data = sncosmo.load_example_data()
+    result, fitted_model = sncosmo.fit_lc(
+        data, model,
+        ['z', 't0', 'x0', 'x1', 'c'],  # parameters of model to vary
+        bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
 """
 
 import os
