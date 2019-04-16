@@ -11,16 +11,20 @@ SuperChandra: A Super-Chandrasekhar model for 1.7 solar mass progenitors
 
 To use the model:
     import sncosmo
+    import matplotlib
 
     # create a model
-    model = sncosmo.Model(source=Chandra)
+    model = sncosmo.Model(source=Chandra())
 
     # run the fit
     data = sncosmo.load_example_data()
     result, fitted_model = sncosmo.fit_lc(
         data, model,
-        ['z', 't0', 'x0', 'x1', 'c'],  # parameters of model to vary
+        ['z', 't0', 'x0'],        # parameters of model to vary
         bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
+
+    fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
+    fig.show()
 """
 
 import os
@@ -111,7 +115,17 @@ class GenericSource(sncosmo.Source):
         return amplitude * self.spline(phase, wave)
 
 
-SubChandra_1 = GenericSource(SUB_1_PATH, 'SubChandra', 1.04)
-SubChandra_2 = GenericSource(SUB_2_PATH, 'SubChandra', 1.02)
-Chandra = GenericSource(CHAN_PATH, 'Chandra', 1.4)
-SuperChandra = GenericSource(SUP_PATH, 'SuperChandra', 1.7)
+def SubChandra_1():
+    return GenericSource(SUB_1_PATH, 'SubChandra', 1.04)
+
+
+def SubChandra_2():
+    return GenericSource(SUB_2_PATH, 'SubChandra', 1.02)
+
+
+def Chandra():
+    return GenericSource(CHAN_PATH, 'Chandra', 1.4)
+
+
+def SuperChandra():
+    return GenericSource(SUP_PATH, 'SuperChandra', 1.7)
