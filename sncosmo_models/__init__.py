@@ -20,9 +20,10 @@ To use the model:
     data = sncosmo.load_example_data()
     result, fitted_model = sncosmo.fit_lc(
         data, model,
-        ['z', 't0', 'x0'],        # parameters of model to vary
+        ['z', 't0', 'x0'],  # parameters of model to vary
         bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
 
+    # Plot results
     fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
     fig.show()
 """
