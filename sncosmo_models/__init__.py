@@ -117,11 +117,11 @@ class GenericSource(sncosmo.Source):
 
 
 def SubChandra_1():
-    return GenericSource(SUB_1_PATH, 'SubChandra', 1.04)
+    return GenericSource(SUB_1_PATH, 'SubChandra_1', 1.04)
 
 
 def SubChandra_2():
-    return GenericSource(SUB_2_PATH, 'SubChandra', 1.02)
+    return GenericSource(SUB_2_PATH, 'SubChandra_2', 1.02)
 
 
 def Chandra():

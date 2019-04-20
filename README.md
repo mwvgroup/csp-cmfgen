@@ -40,7 +40,7 @@ A copy of the CMFGEN models in asccii format is provided in the *asccii_models/*
 
 
 
-To retreive the model:
+To retrieve a model:
 
 ```Python
 from sncosmo_models import Chandra
@@ -48,11 +48,11 @@ from sncosmo_models import Chandra
 source = Chandra()
 
 # The model interpolated onto a common wavelength grid
-# This is the information used when fitting lightcurves with SNCosmo
+# This is the information used when fitting light-curves with SNCosmo
 phase_grid, wavelength_grid, flux_grid = source.gridded_model()
 
-# The model uninterpolated
-# This information is provided for conveniance, and is not used
+# The model un-interpolated
+# This information is provided for convenience, and is not used
 # by SNCosmo in any way.
 phase, wavelength, flux = source.raw_model()
 ```
