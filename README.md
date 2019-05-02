@@ -36,7 +36,7 @@ for data in csp.iter_sncosmo_input():
 
 ## Model Access
 
-A copy of the CMFGEN models in asccii format is provided in the *asccii_models/* directory. A version of these models ported for use with **SNCosmo** is available via the `sncosmo_models` module. It is important to note that these two models are not identical. The models represent the flux of a supernova at 1Kpc for a given time and wavelength. The wavelength grid in the asccii models changes with phase, where as in the version ported to SNCosmo the flux for a given phase has been interpolated onto a common wavelength grid. 
+A copy of the CMFGEN models in ascii format is provided in the *asccii_models/* directory. A version of these models ported for use with **SNCosmo** is available via the `sncosmo_models` module. It is important to note that these two models are not identical. The models represent the flux of a supernova at 1Kpc for a given time and wavelength. The wavelength grid in the asccii models changes with phase, where as in the version ported to SNCosmo the flux for a given phase has been interpolated onto a common wavelength grid. 
 
 
 
