@@ -23,7 +23,7 @@ demo_data = csp.get_data_for_id('2004dt')
 print(demo_data)
 
 # You can also get the same data formatted for use with SNCosmo
-demo_data_formatted = csp.get_data_for_id('2004dt')
+demo_data_formatted = csp.get_input_for_id('2004dt')
 print(demo_data_formatted)
 
 # Iterate over photometric data tables for all targets
