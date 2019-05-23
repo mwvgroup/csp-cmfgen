@@ -4,3 +4,4 @@ requests
 scipy
 sncosmo
 tqdm
+iminuit

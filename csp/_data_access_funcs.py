@@ -33,7 +33,7 @@ def get_data_for_id(cid):
 
     file_path = _path.join(meta_data.photometry_dir, f'SN{cid}_snpy.txt')
     data_table = parse_snoopy_data(file_path)
-    data_table['band'] = '91bg_proj_csp_' + data_table['band']
+    data_table['band'] = 'SND_csp_' + data_table['band']
     data_table.meta['cid'] = cid
 
     return data_table
