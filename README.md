@@ -1,36 +1,14 @@
 # Supernova Model Comparison in the NIR
 
-A comparison of [CMFGEN](http://kookaburra.phyast.pitt.edu/hillier/web/CMFGEN.htm) supernova simulations against data from the Carnegie Supernova Project (CSP), particularly in the NIR. 
+A comparison of [CMFGEN](http://kookaburra.phyast.pitt.edu/hillier/web/CMFGEN.htm) supernova simulations against data from the Carnegie Supernova Project (CSP),
+particularly in the NIR. 
 
 
 
 ## Data Access
 
-CSP data is provided by the `csp` module. Any data that is not available on your local machine is downloaded automatically.
+Access to CSP light curves is provided by the `SNData` package. Full documentation is available [here](https://sn-data.readthedocs.io/en/latest/index.html).
 
-```python
-import csp
-
-# A table of target data from the third CSP data release
-print(csp.master_table)
-
-# The names and effective wavelengths for the CSP bandpasses
-bands = csp.band_names
-lambda_eff = csp.lambda_effective
-
-# Get an astropy table with photometric data for a specific target
-demo_data = csp.get_data_for_id('2004dt')
-print(demo_data)
-
-# You can also get the same data formatted for use with SNCosmo
-demo_data_formatted = csp.get_input_for_id('2004dt')
-print(demo_data_formatted)
-
-# Iterate over photometric data tables for all targets
-for data in csp.iter_sncosmo_input():
-    print(data)
-    break
-```
 
 
 
@@ -40,7 +18,7 @@ A copy of the CMFGEN models in ascii format is provided in the *asccii_models/* 
 
 
 
-To retrieve a model:
+#### To retrieve a model:
 
 ```Python
 from sncosmo_models import Chandra
@@ -59,11 +37,14 @@ phase, wavelength, flux = source.raw_model()
 
 
 
-To fit a light curve:
+#### To fit a light curve:
 
 ```Python
 import sncosmo
-import matplotlib
+from SNData.csp import dr3
+
+# Get a data table
+demo_table = next(dr3.iter_data(format_sncosmo=True))
 
 # create a model
 model = sncosmo.Model(source=source)
@@ -71,7 +52,7 @@ model = sncosmo.Model(source=source)
 # run the fit
 data = sncosmo.load_example_data()
 result, fitted_model = sncosmo.fit_lc(
-    data, model,
+    demo_table, model,
     ['z', 't0', 'x0'],  # parameters of model to vary
     bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
 
