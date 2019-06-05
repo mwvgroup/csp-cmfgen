@@ -43,6 +43,10 @@ phase, wavelength, flux = source.raw_model()
 import sncosmo
 from SNData.csp import dr3
 
+# Make sure data is available
+dr3.download_module_data()
+dr3.register_filters()
+
 # Get a data table
 demo_table = next(dr3.iter_data(format_sncosmo=True))
 
