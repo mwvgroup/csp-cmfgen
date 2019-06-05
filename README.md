@@ -48,13 +48,13 @@ demo_table = next(dr3.iter_data(format_sncosmo=True))
 
 # create a model
 model = sncosmo.Model(source=source)
+model.set(z=demo_table.meta['redshift']
 
 # run the fit
-data = sncosmo.load_example_data()
 result, fitted_model = sncosmo.fit_lc(
-    demo_table, model,
-    ['z', 't0', 'x0'],  # parameters of model to vary
-    bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
+    data=demo_table,
+    model=model,
+    vparam_names=['t0', 'x0'])
 
 # Plot results
 fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
