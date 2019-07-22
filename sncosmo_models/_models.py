@@ -47,8 +47,8 @@ def save_model_to_npz(in_dir, out_path):
     for row in tqdm(ascii_summary_table, desc=f'Formatting {out_path.stem}'):
         file_name = row[1] + '.fl'
         flux_table = Table.read(in_dir / file_name, format='ascii')
-        wavelength.append(flux_table['col1'])
-        flux.append(flux_table['col2'])
+        wavelength.append(np.array(flux_table['col1']))
+        flux.append(np.array(flux_table['col2']))
 
     np.savez(out_path, phase=phase, wavelength=wavelength, flux=flux)
 
@@ -112,10 +112,10 @@ class GenericSource(sncosmo.Source):
 
         return deepcopy([self._phase, self._wave, self._model_flux])
 
-    def raw_model(self):
+    def original_model(self):
         """Return the phase, wavelength, and flux values of the model
 
-        Returns the raw model that this class is based on without any
+        Returns the un-gridded model that this class is based on without any
         down-sampling. Flux values span different wavelength ranges
         for different phases.
 
@@ -125,7 +125,7 @@ class GenericSource(sncosmo.Source):
             A 2D array of flux values
         """
 
-        path = self._path.rstrip('_grid.npz') + '.npz'
+        path = str(self._path).replace('_grid.npz', '.npz')
         data = np.load(path)
         return data['phase'], data['wavelength'], data['flux']
 
