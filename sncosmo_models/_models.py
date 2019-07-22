@@ -164,5 +164,12 @@ def register_sources(force=False):
             data_class=sncosmo.Source,
             name='CMFGEN',
             func=get_model,
-            version=version,
+            version=str(version),
+            force=force)
+
+        sncosmo.register_loader(
+            data_class=sncosmo.Source,
+            name='CMFGEN',
+            func=get_model,
+            version=float(version),
             force=force)
