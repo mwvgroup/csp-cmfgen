@@ -97,7 +97,7 @@ class GenericSource(sncosmo.Source):
             self._model_flux,
             kx=3, ky=3)
 
-    def gridded_model(self):
+    def interpolated_model(self):
         """Return the phase, wavelength, and flux values used for fitting
 
         Returns the data with flux values down-sampled onto the same wavelength
