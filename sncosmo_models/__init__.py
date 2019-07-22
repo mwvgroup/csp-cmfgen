@@ -37,9 +37,10 @@ To use the model:
     plt.show()
 """
 
-from ._models import VERSIONS as versions
-from ._models import get_model, register_sources
+from ._models import ASCII_MODEL_DIR as _ascii_dir
+from ._models import format_models, get_model, register_sources
 
+format_models(force=False)
 SubChandra_1 = get_model(version=1.04)
 SubChandra_2 = get_model(version=1.02)
 Chandra = get_model(version=1.4)
