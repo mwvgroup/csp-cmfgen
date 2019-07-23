@@ -11,10 +11,19 @@ SuperChandra: A Super-Chandrasekhar model for 1.7 solar mass progenitors
 
 To use the model:
     import sncosmo
-    import matplotlib
+    from matplotlib import pyplot as plt
 
-    # create a model
-    model = sncosmo.Model(source=Chandra())
+    import sncosmo_models
+
+    # Check available versions
+    print(sncosmo_models.versions)
+
+    # Make sncosmo aware of the sncosmo models
+    sncosmo_models.register_sources()
+
+    # Initialize a CMFGEN model where the version is the model mass
+    source = sncosmo.get_source('CMFGEN', version=1.04)
+    model = sncosmo.Model(source=source)
 
     # run the fit
     data = sncosmo.load_example_data()
@@ -25,6 +34,13 @@ To use the model:
 
     # Plot results
     fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
+    plt.show()
 """
 
-from ._models import Chandra, SubChandra_1, SubChandra_2, SuperChandra
+from ._models import VERSIONS as versions
+from ._models import get_model, register_sources
+
+SubChandra_1 = get_model(version=1.04)
+SubChandra_2 = get_model(version=1.02)
+Chandra = get_model(version=1.4)
+SuperChandra = get_model(version=1.7)

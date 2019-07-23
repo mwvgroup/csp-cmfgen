@@ -5,41 +5,39 @@
 based models.
 """
 
-import os
 from copy import deepcopy
-from glob import glob
+from pathlib import Path
 from zipfile import ZipFile
 
 import numpy as np
 import sncosmo
 from scipy.interpolate import RectBivariateSpline
 
-FILE_DIR = os.path.abspath(os.path.dirname(__file__))
-SUB_1_PATH = os.path.join(FILE_DIR, 'DDC0_grid.npz')
-SUB_2_PATH = os.path.join(FILE_DIR, 'DDC10_grid.npz')
-CHAN_PATH = os.path.join(FILE_DIR, 'DDC15_grid.npz')
-SUP_PATH = os.path.join(FILE_DIR, 'SCH05p5_grid.npz')
+FILE_DIR = Path(__file__).resolve().parent
+path_1_02 = FILE_DIR / 'DDC10_grid.npz'
+path_1_04 = FILE_DIR / 'DDC0_grid.npz'
+path_1_4 = FILE_DIR / 'DDC15_grid.npz'
+path_1_7 = FILE_DIR / 'SCH05p5_grid.npz'
+VERSIONS = (1.02, 1.04, 1.4, 1.7)
+PATHS = (path_1_02, path_1_04, path_1_4, path_1_7)
 
-for path in (SUB_1_PATH, SUB_2_PATH, CHAN_PATH, SUP_PATH):
-    if os.path.exists(path):
-        continue
-
-    print('Unzipping models...')
-    for path in glob(os.path.join(FILE_DIR, '*.zip')):
-        with ZipFile(path) as zip_ref:
+for _path in PATHS:
+    if not _path.exists():
+        print(f'Unzipping model: {_path}')
+        with ZipFile(str(_path) + '.zip') as zip_ref:
             zip_ref.extractall(FILE_DIR)
-
-    break
 
 
 class GenericSource(sncosmo.Source):
+    """SNCosmo source class for a CMFGEN model"""
+
     _param_names = ['x0']
     param_names_latex = ['x0']  # used in plotting display
 
-    def __init__(self, path, name, version):
+    def __init__(self, path, version):
         self._path = path
         self._parameters = [1]
-        self.name = name
+        self.name = 'CMFGEN'
         self.version = version
 
         model_data = np.load(path)
@@ -93,17 +91,34 @@ class GenericSource(sncosmo.Source):
         return amplitude * self.spline(phase, wave)
 
 
-def SubChandra_1():
-    return GenericSource(SUB_1_PATH, 'SubChandra_1', 1.04)
+def get_model(name=None, version=None):
+    """Return an SNCosmo CMFGEN source for a given model
+
+    Args:
+        name          (None): A dummy variable for compatibility with sncosmo
+        version (str, float): The version (mass) of the CMFGEN model
+
+    Returns:
+        A source object for the specified model
+    """
+
+    version_paths = {str(v): p for v, p in zip(VERSIONS, PATHS)}
+    return GenericSource(version_paths[str(version)], version)
 
 
-def SubChandra_2():
-    return GenericSource(SUB_2_PATH, 'SubChandra_2', 1.02)
+def register_sources(force=False):
+    """Register CMFGEN models with sncosmo
 
+    Versions include: ``salt2_phase``, ``color_interpolation``
 
-def Chandra():
-    return GenericSource(CHAN_PATH, 'Chandra', 1.4)
+    Args:
+        force (bool): Whether to overwrite an already registered source
+    """
 
-
-def SuperChandra():
-    return GenericSource(SUP_PATH, 'SuperChandra', 1.7)
+    for version in (1.04, 1.02, 1.4, 1.7):
+        sncosmo.register_loader(
+            data_class=sncosmo.Source,
+            name='CMFGEN',
+            func=get_model,
+            version=version,
+            force=force)
