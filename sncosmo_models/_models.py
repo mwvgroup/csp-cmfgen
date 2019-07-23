@@ -7,17 +7,13 @@ based models.
 
 from copy import deepcopy
 from pathlib import Path
+from zipfile import ZipFile
 
 import numpy as np
 import sncosmo
-from astropy.table import Table
 from scipy.interpolate import RectBivariateSpline
-from tqdm import tqdm
 
-FILE_DIR = Path(__file__).resolve().parent
-ASCII_MODEL_DIR = FILE_DIR / 'ascii_models'
-NPZ_MODEL_DIR = FILE_DIR / 'NPZ_models'
-
+NPZ_MODEL_DIR = Path(__file__).resolve().parent / 'NPZ_models'
 VERSION_PATHS = {
     '1.02': NPZ_MODEL_DIR / 'DDC10_grid.npz',
     '1.04': NPZ_MODEL_DIR / 'DDC0_grid.npz',
@@ -25,53 +21,11 @@ VERSION_PATHS = {
     '1.7': NPZ_MODEL_DIR / 'SCH05p5_grid.npz'
 }
 
-
-def save_model_to_npz(in_dir, out_path):
-    """Convert CMFGEN models from ASCII to npz format
-
-    Args:
-        in_dir   (Path): Directory of ASCII files for a given model
-        out_path (Path): Output path of the npz file
-    """
-
-    out_path = out_path.with_suffix('.npz')
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    ascii_summary_table = Table.read(str(in_dir / 'AGE_FLUX_TAB'),
-                                     format='ascii')
-    phase = np.array(
-        [float(x.rstrip('D0')) for x in ascii_summary_table['col1']])
-
-    # Iterate over rows with file names for SEDs at different phase values
-    flux = []
-    wavelength = []
-    for row in tqdm(ascii_summary_table, desc=f'Formatting {out_path.stem}'):
-        file_name = row[1] + '.fl'
-        flux_table = Table.read(in_dir / file_name, format='ascii')
-        wavelength.append(np.array(flux_table['col1']))
-        flux.append(np.array(flux_table['col2']))
-
-    np.savez(out_path, phase=phase, wavelength=wavelength, flux=flux)
-
-    # Down sample onto a uniform grid
-    wavelength_grid = wavelength[0]
-    flux_grid = []
-    for w, f in zip(wavelength, flux):
-        flux_grid.append(np.interp(wavelength_grid, w, f))
-
-    grid_path = out_path.with_name(out_path.stem + '_grid.npz')
-    np.savez(grid_path, phase=phase, wavelength=wavelength_grid,
-             flux=flux_grid)
-
-
-def format_models(force=True):
-    """Format all CMFGEN models included with this distribution for use by
-    this package
-    """
-
-    if not NPZ_MODEL_DIR.exists() or force:
-        tqdm.write('Formatting models for use by package...')
-        for sub_dir in ASCII_MODEL_DIR.glob('*/'):
-            save_model_to_npz(sub_dir, NPZ_MODEL_DIR / sub_dir.stem)
+for _path in VERSION_PATHS.values():
+    if not _path.exists():
+        print(f'Unzipping model: {_path}')
+        with ZipFile(str(_path) + '.zip') as zip_ref:
+            zip_ref.extractall(NPZ_MODEL_DIR)
 
 
 class GenericSource(sncosmo.Source):
@@ -146,7 +100,9 @@ def get_model(name=None, version=None):
     Returns:
         A source object for the specified model
     """
-return GenericSource(VERSION_PATHS[str(version)], version)
+
+    return GenericSource(VERSION_PATHS[str(version)], version)
+
 
 def register_sources(force=False):
     """Register CMFGEN models with sncosmo

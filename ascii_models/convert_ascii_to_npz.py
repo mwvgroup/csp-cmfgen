@@ -1,35 +1,43 @@
 #!/usr/bin/env python3.7
 # -*- coding: UTF-8 -*-
 
-"""This script converts ascii model directories to a single npz file. It will
-convert all directories in the current working path.
+"""This script converts CMFGEN models from a directory of ascii files to a
+single npz file. It will convert all directories (i.e., models) in the current
+working directory.
 """
 
-import os
+import argparse
+from pathlib import Path
 
 import numpy as np
 from astropy.table import Table
 from tqdm import tqdm
 
+ASCII_MODEL_DIR = Path(__file__).resolve().parent
+NPZ_MODEL_DIR = ASCII_MODEL_DIR / 'NPZ_models'
 
-def save_model_to_npy(in_dir, out_path):
-    """Convert a directory of ascii models files to a single npz file
+
+def save_model_to_npz(in_dir, out_path):
+    """Convert CMFGEN models from ASCII to npz format
 
     Args:
-        in_dir   (str): Directory path of input ascii model
-        out_path (str): Where to write the output file
+        in_dir   (Path): Directory of ASCII files for a given model
+        out_path (Path): Output path of the npz file
     """
 
-    # Read summary table for the model
-    tab = Table.read(os.path.join(in_dir, 'AGE_FLUX_TAB'), format='ascii')
+    out_path = out_path.with_suffix('.npz')
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    ascii_summary_table = Table.read(str(in_dir / 'AGE_FLUX_TAB'),
+                                     format='ascii')
+    phase = np.array(
+        [float(x.rstrip('D0')) for x in ascii_summary_table['col1']])
 
-    # Populate arrays with model values
-    phase = np.array([float(x.rstrip('D0')) for x in tab['col1']])
+    # Iterate over rows with file names for SEDs at different phase values
     flux = []
     wavelength = []
-    for row in tqdm(tab):
-        flux_table = Table.read(os.path.join(in_dir, row[1] + '.fl'),
-                                format='ascii')
+    for row in tqdm(ascii_summary_table, desc=f'Formatting {out_path.stem}'):
+        file_name = row[1] + '.fl'
+        flux_table = Table.read(in_dir / file_name, format='ascii')
         wavelength.append(np.array(flux_table['col1']))
         flux.append(np.array(flux_table['col2']))
 
@@ -41,13 +49,33 @@ def save_model_to_npy(in_dir, out_path):
     for w, f in zip(wavelength, flux):
         flux_grid.append(np.interp(wavelength_grid, w, f))
 
-    # Save data
-    grid_path = out_path.rstrip('.npz') + '_grid.npz'
+    grid_path = out_path.with_name(out_path.stem + '_grid.npz')
     np.savez(grid_path, phase=phase, wavelength=wavelength_grid,
              flux=flux_grid)
 
 
+def format_models(out_dir):
+    """Format all CMFGEN models included with this distribution for use by
+    this package
+
+    Args:
+        out_dir (Path): Directory where output files are written
+    """
+
+    for sub_dir in ASCII_MODEL_DIR.glob('*/'):
+        save_model_to_npz(sub_dir, out_dir / sub_dir.stem)
+
+
 if __name__ == '__main__':
-    model_dir = './'
-    for sub_dir in os.listdir(model_dir):
-        save_model_to_npy(os.path.join(model_dir, sub_dir), sub_dir)
+    parser = argparse.ArgumentParser(
+        description='Convert CMFGEN models into NPZ files.')
+
+    parser.add_argument(
+        '-o', '--out_path',
+        type=str,
+        required=True,
+        help='Directory where output files are written.')
+
+    out_path = Path(parser.parse_args().out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    format_models(out_path)

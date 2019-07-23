@@ -2,12 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """This module defines custom SNCosmo.Source objects for four different CMFGEN
-based models. Source objects include:
-
-SubChandra_1: A Sub-Chandrasekhar model for 1.04 solar mass progenitors
-SubChandra_2: A Sub-Chandrasekhar model for 1.02 solar mass progenitors
-Chandra: A Chandrasekhar model for 1.4 solar mass progenitors
-SuperChandra: A Super-Chandrasekhar model for 1.7 solar mass progenitors
+based models.
 
 To use the model:
     import sncosmo
@@ -38,7 +33,7 @@ To use the model:
 """
 
 from ._models import ASCII_MODEL_DIR as _ascii_dir
-from ._models import format_models, get_model, register_sources
+from ._models import get_model, register_sources
 
 SubChandra_1 = get_model(version=1.04)
 SubChandra_2 = get_model(version=1.02)

@@ -1,4 +1,4 @@
-sncosmo_models/NPZ_models/
+sncosmo_models/NPZ_models/*.npz
 notebooks/figures/
 
 # OS Files
