@@ -1,4 +1,5 @@
 sncosmo_models/NPZ_models/
+notebooks/figures/
 
 # OS Files
 *.DS_Store
