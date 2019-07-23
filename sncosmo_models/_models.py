@@ -7,7 +7,6 @@ based models.
 
 from copy import deepcopy
 from pathlib import Path
-from zipfile import ZipFile
 
 import numpy as np
 import sncosmo
@@ -20,12 +19,6 @@ VERSION_PATHS = {
     '1.4': NPZ_MODEL_DIR / 'DDC15_grid.npz',
     '1.7': NPZ_MODEL_DIR / 'SCH05p5_grid.npz'
 }
-
-for _path in VERSION_PATHS.values():
-    if not _path.exists():
-        print(f'Unzipping model: {_path}')
-        with ZipFile(str(_path) + '.zip') as zip_ref:
-            zip_ref.extractall(NPZ_MODEL_DIR)
 
 
 class GenericSource(sncosmo.Source):
