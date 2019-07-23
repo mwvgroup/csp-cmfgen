@@ -1,4 +1,7 @@
 astropy
+bokeh
+george
+matplotlib
 numpy==1.16.2
 requests
 scipy
