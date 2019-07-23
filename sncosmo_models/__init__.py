@@ -32,10 +32,9 @@ To use the model:
     plt.show()
 """
 
-from ._models import ASCII_MODEL_DIR as _ascii_dir
-from ._models import get_model, register_sources
+from ._models import get_model as _get_model, register_sources
 
-SubChandra_1 = get_model(version=1.04)
-SubChandra_2 = get_model(version=1.02)
-Chandra = get_model(version=1.4)
-SuperChandra = get_model(version=1.7)
+SubChandra_1 = _get_model(version=1.04)
+SubChandra_2 = _get_model(version=1.02)
+Chandra = _get_model(version=1.4)
+SuperChandra = _get_model(version=1.7)
