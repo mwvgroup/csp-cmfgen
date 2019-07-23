@@ -1,9 +1,5 @@
-# Light Curve Data
-csp/data/DR3
-csp/data/filters
-csp/data/Krisciunas_2013
-
-sncosmo_models/*.npz
+sncosmo_models/NPZ_models/*.npz
+notebooks/figures/
 
 # OS Files
 *.DS_Store

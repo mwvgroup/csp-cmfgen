@@ -2,12 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """This module defines custom SNCosmo.Source objects for four different CMFGEN
-based models. Source objects include:
-
-SubChandra_1: A Sub-Chandrasekhar model for 1.04 solar mass progenitors
-SubChandra_2: A Sub-Chandrasekhar model for 1.02 solar mass progenitors
-Chandra: A Chandrasekhar model for 1.4 solar mass progenitors
-SuperChandra: A Super-Chandrasekhar model for 1.7 solar mass progenitors
+based models.
 
 To use the model:
     import sncosmo
@@ -37,10 +32,27 @@ To use the model:
     plt.show()
 """
 
-from ._models import VERSIONS as versions
-from ._models import get_model, register_sources
+from ._models import get_model as _get_model, register_sources
 
-SubChandra_1 = get_model(version=1.04)
-SubChandra_2 = get_model(version=1.02)
-Chandra = get_model(version=1.4)
-SuperChandra = get_model(version=1.7)
+
+def _unzip_models():
+    """Decompress any models that haven't already been decompressed"""
+
+    from zipfile import ZipFile
+    from ._models import VERSION_PATHS, NPZ_MODEL_DIR
+
+    file_paths = list(VERSION_PATHS.values())
+    file_paths += [f.with_name(f.name.replace('_grid', '')) for f in file_paths]
+
+    for path in file_paths:
+        if not path.exists():
+            print(f'Unzipping model: {path}')
+            with ZipFile(str(path) + '.zip') as zip_ref:
+                zip_ref.extractall(NPZ_MODEL_DIR)
+
+
+_unzip_models()
+SubChandra_1 = _get_model(version=1.04)
+SubChandra_2 = _get_model(version=1.02)
+Chandra = _get_model(version=1.4)
+SuperChandra = _get_model(version=1.7)

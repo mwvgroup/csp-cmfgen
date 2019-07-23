@@ -7,25 +7,18 @@ based models.
 
 from copy import deepcopy
 from pathlib import Path
-from zipfile import ZipFile
 
 import numpy as np
 import sncosmo
 from scipy.interpolate import RectBivariateSpline
 
-FILE_DIR = Path(__file__).resolve().parent
-path_1_02 = FILE_DIR / 'DDC10_grid.npz'
-path_1_04 = FILE_DIR / 'DDC0_grid.npz'
-path_1_4 = FILE_DIR / 'DDC15_grid.npz'
-path_1_7 = FILE_DIR / 'SCH05p5_grid.npz'
-VERSIONS = (1.02, 1.04, 1.4, 1.7)
-PATHS = (path_1_02, path_1_04, path_1_4, path_1_7)
-
-for _path in PATHS:
-    if not _path.exists():
-        print(f'Unzipping model: {_path}')
-        with ZipFile(str(_path) + '.zip') as zip_ref:
-            zip_ref.extractall(FILE_DIR)
+NPZ_MODEL_DIR = Path(__file__).resolve().parent / 'NPZ_models'
+VERSION_PATHS = {
+    '1.02': NPZ_MODEL_DIR / 'DDC10_grid.npz',
+    '1.04': NPZ_MODEL_DIR / 'DDC0_grid.npz',
+    '1.4': NPZ_MODEL_DIR / 'DDC15_grid.npz',
+    '1.7': NPZ_MODEL_DIR / 'SCH05p5_grid.npz'
+}
 
 
 class GenericSource(sncosmo.Source):
@@ -51,7 +44,7 @@ class GenericSource(sncosmo.Source):
             self._model_flux,
             kx=3, ky=3)
 
-    def gridded_model(self):
+    def interpolated_model(self):
         """Return the phase, wavelength, and flux values used for fitting
 
         Returns the data with flux values down-sampled onto the same wavelength
@@ -64,13 +57,12 @@ class GenericSource(sncosmo.Source):
             A 2D array of flux values
         """
 
-        data = (self._phase, self._wave, self._model_flux)
-        return (deepcopy(array) for array in data)
+        return deepcopy([self._phase, self._wave, self._model_flux])
 
-    def raw_model(self):
+    def original_model(self):
         """Return the phase, wavelength, and flux values of the model
 
-        Returns the raw model that this class is based on without any
+        Returns the un-gridded model that this class is based on without any
         down-sampling. Flux values span different wavelength ranges
         for different phases.
 
@@ -80,7 +72,7 @@ class GenericSource(sncosmo.Source):
             A 2D array of flux values
         """
 
-        path = self._path.rstrip('_grid.npz') + '.npz'
+        path = str(self._path).replace('_grid.npz', '.npz')
         data = np.load(path)
         return data['phase'], data['wavelength'], data['flux']
 
@@ -102,8 +94,7 @@ def get_model(name=None, version=None):
         A source object for the specified model
     """
 
-    version_paths = {str(v): p for v, p in zip(VERSIONS, PATHS)}
-    return GenericSource(version_paths[str(version)], version)
+    return GenericSource(VERSION_PATHS[str(version)], version)
 
 
 def register_sources(force=False):
@@ -115,10 +106,17 @@ def register_sources(force=False):
         force (bool): Whether to overwrite an already registered source
     """
 
-    for version in (1.04, 1.02, 1.4, 1.7):
+    for version in VERSION_PATHS.keys():
         sncosmo.register_loader(
             data_class=sncosmo.Source,
             name='CMFGEN',
             func=get_model,
-            version=version,
+            version=str(version),
+            force=force)
+
+        sncosmo.register_loader(
+            data_class=sncosmo.Source,
+            name='CMFGEN',
+            func=get_model,
+            version=float(version),
             force=force)
