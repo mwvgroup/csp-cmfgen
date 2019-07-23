@@ -6,7 +6,7 @@ A comparison of [CMFGEN](http://kookaburra.phyast.pitt.edu/hillier/web/CMFGEN.ht
 
 ## Data Access
 
-Access to CSP light curves is provided by the `SNData` package. Full documentation is available [here](https://sn-data.readthedocs.io/en/latest/index.html).
+Access to CSP light curves is provided by the `sndata` package. Full documentation is available [here](https://sn-data.readthedocs.io/en/latest/index.html).
 
 
 
@@ -17,56 +17,32 @@ A copy of the CMFGEN models in ascii format is provided in the *sncosmo_models/a
 
 
 
-#### To retrieve a model:
-
-```Python
-from sncosmo_models import register_sources
-
-# Make SNCosmo aware of the CMFGEN models
-sncosmo_models.register_sources(force=True)
-
-# Retrieve a model from the SNCosmo registry
-m102 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.02))
-
-# The model interpolated onto a common wavelength grid
-# This is the information used when fitting light-curves with SNCosmo
-phase_grid, wavelength_grid, flux_grid = source.interpolated_model()
-
-# The model un-interpolated
-# This information is provided for convenience, and is not used
-# by SNCosmo in any way.
-phase, wavelength, flux = source.original_model()
-```
-
-
-
-#### To fit a light curve:
+#### Using SNCosmo Example:
 
 ```Python
 import sncosmo
-from SNData.csp import dr3
+from matplotlib import pyplot as plt
 
-# Make sure data is available
-dr3.download_module_data()
-dr3.register_filters()
+import sncosmo_models
 
-# Get a data table
-demo_table = next(dr3.iter_data(format_sncosmo=True))
+# Check available versions
+print(sncosmo_models.versions)
 
-# create a model
-m102 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.02))
-model.set(z=demo_table.meta['redshift']
+# Make sncosmo aware of the sncosmo models
+sncosmo_models.register_sources()
+
+# Initialize a CMFGEN model where the version is the model mass
+source = sncosmo.get_source('CMFGEN', version=1.04)
+model = sncosmo.Model(source=source)
 
 # run the fit
+data = sncosmo.load_example_data()
 result, fitted_model = sncosmo.fit_lc(
-    data=demo_table,
-    model=model,
-    vparam_names=['t0', 'x0'])
+    data, model,
+    ['z', 't0', 'x0'],  # parameters of model to vary
+    bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
 
 # Plot results
 fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
-fig.show()
+plt.show()
 ```
-
-
-

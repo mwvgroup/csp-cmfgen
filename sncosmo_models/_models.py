@@ -146,9 +146,7 @@ def get_model(name=None, version=None):
     Returns:
         A source object for the specified model
     """
-
-    return GenericSource(VERSION_PATHS[str(version)], version)
-
+return GenericSource(VERSION_PATHS[str(version)], version)
 
 def register_sources(force=False):
     """Register CMFGEN models with sncosmo

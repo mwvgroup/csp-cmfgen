@@ -6,3 +6,5 @@ sncosmo
 tqdm
 iminuit
 sndata
+
+kernel
