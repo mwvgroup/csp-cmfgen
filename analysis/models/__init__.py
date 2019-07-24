@@ -52,6 +52,7 @@ def _unzip_models():
 
 
 _unzip_models()
+versions = (1.04, 1.02, 1.4, 1.7)
 SubChandra_1 = _get_model(version=1.04)
 SubChandra_2 = _get_model(version=1.02)
 Chandra = _get_model(version=1.4)

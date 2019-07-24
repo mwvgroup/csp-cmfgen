@@ -62,7 +62,7 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
     """Fit a gaussian regressor to a data table
 
     Args:
-        data         (Table): Data from sndata (format_sncosmo=True)
+        data         (Table): Data table from sndata (format_sncosmo=True)
         fix_scale     (bool): Whether to fix the scale while fitting (Default: True)
         length_scale (float): The initial length scale to use for the fit.
 

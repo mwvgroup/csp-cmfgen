@@ -3,14 +3,6 @@
 A comparison of [CMFGEN](http://kookaburra.phyast.pitt.edu/hillier/web/CMFGEN.htm) supernova simulations against data from the Carnegie Supernova Project (CSP), particularly in the NIR. 
 
 
-
-## Data Access
-
-Access to CSP light curves is provided by the `sndata` package. Full documentation is available [here](https://sn-data.readthedocs.io/en/latest/index.html).
-
-
-
-
 ## Model Access
 
 A copy of the CMFGEN models in ascii format is provided in the *sncosmo_models/asccii_models/* directory. A version of these models ported for use with **SNCosmo** is available via the `sncosmo_models` module. It is important to note that these two models are not identical. The wavelength grid in the asccii models changes with phase, where as the SNCosmo models have been interpolated onto a common wavelength grid. Both models represent the flux of a supernova at 1Kpc for a given time and wavelength.
@@ -23,13 +15,13 @@ A copy of the CMFGEN models in ascii format is provided in the *sncosmo_models/a
 import sncosmo
 from matplotlib import pyplot as plt
 
-import sncosmo_models
+from analysis import models
 
 # Check available versions
-print(sncosmo_models.versions)
+print(models.versions)
 
 # Make sncosmo aware of the sncosmo models
-sncosmo_models.register_sources()
+models.register_sources()
 
 # Initialize a CMFGEN model where the version is the model mass
 source = sncosmo.get_source('CMFGEN', version=1.04)
