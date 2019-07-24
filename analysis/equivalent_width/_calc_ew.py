@@ -128,10 +128,18 @@ def _feature_table_pew(wavelength, flux, feature_table):
 
     ew_values = []
     for feature in feature_table:
-        feat_wave, feat_flux = get_feature_coordinates(wavelength, flux, feature)
-        cont_func = get_continuum_func(*feat_wave, *feat_flux)
-        ew = calc_pew(wavelength, flux, feat_wave[0], feat_wave[1], cont_func)
-        ew_values.append(ew)
+        try:
+            feat_wave, feat_flux = get_feature_coordinates(wavelength, flux,
+                                                           feature)
+
+        except UnobservedFeature:
+            ew_values.append(-99)
+
+        else:
+            cont_func = get_continuum_func(*feat_wave, *feat_flux)
+            ew = calc_pew(wavelength, flux, feat_wave[0], feat_wave[1],
+                          cont_func)
+            ew_values.append(ew)
 
     return ew_values
 
@@ -153,7 +161,13 @@ def tabulate_pew(time, wavelength, flux, feature_table):
     """
 
     # noinspection PyTypeChecker
-    ew_values = [_feature_table_pew(w, f, feature_table) for w, f in zip(wavelength, flux)]
-    out_data = Table(rows=ew_values, names=feature_table['feature_name'])
+    ew_values = np.array([_feature_table_pew(w, f, feature_table) for w, f in zip(wavelength, flux)])
+
+    out_data = Table(
+        names=feature_table['feature_name'],
+        rows=ew_values,
+        masked=True)
+
+    out_data.mask = np.transpose(ew_values < 0)
     out_data['time'] = time
-    return ew_values
+    return out_data[['time'] + out_data.colnames[:-1]]

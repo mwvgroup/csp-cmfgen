@@ -5,7 +5,7 @@
 a given target and compares them against values predicted by CMFGEN.
 """
 
-from astropy.table import vstack
+from astropy.table import hstack
 
 from ._calc_ew import tabulate_pew
 
@@ -46,8 +46,8 @@ def compare_target_and_models(time, wavelength, flux, feature_table, sources):
         ew_table = tabulate_pew(time, wavelength, source_flux, feature_table)
 
         for col_name in ew_table.colnames:
-            ew_table.rename_column(col_name, col_name + f'_{source.version}')
+            ew_table.rename_column(col_name, col_name + f'_C{source.version}')
 
         out_tables.append(ew_table)
 
-    return vstack(out_tables)
+    return hstack(out_tables)
