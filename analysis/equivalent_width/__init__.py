@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-"""This module measures the pseudo equivilent widths of observed spectra and
+"""This module measures the pseudo equivalent widths of observed spectra and
 compares them with CMFGEN models.
 """
 
 from astropy.table import Table as _Table
 
-from ._calc_ew import UnobservedFeature, calc_feature_pew, calc_pew, \
-    get_continuum_func, get_feature_coordinates
+from ._calc_ew import UnobservedFeature, calc_pew, get_continuum_func, \
+    get_feature_coordinates, tabulate_pew
+from ._compare_models import compare_target_and_models
 
 feature_table = _Table({
     'feature_name': ['pW1', 'pW2', 'pW3', 'pW4', 'pW5', 'pW6', 'pW7', 'pW8'],

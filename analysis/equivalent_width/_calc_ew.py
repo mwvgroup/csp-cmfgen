@@ -29,11 +29,11 @@ def _get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
     """
 
     # Make sure the given spectrum spans the given wavelength bounds
-    if (min(wavelength) < lower_bound) and (upper_bound < max(wavelength)):
+    if (min(wavelength) >= lower_bound) or (upper_bound >= max(wavelength)):
         raise UnobservedFeature('Feature not in spectral wavelength range.')
 
     # Select the portion of the spectrum within the given bounds
-    feature_indices = (lower_bound < wavelength) & (wavelength < upper_bound)
+    feature_indices = (lower_bound <= wavelength) & (wavelength <= upper_bound)
     feature_flux = flux[feature_indices]
     feature_wavelength = wavelength[feature_indices]
 
@@ -152,6 +152,7 @@ def tabulate_pew(time, wavelength, flux, feature_table):
        A table of equivalent widths over time
     """
 
+    # noinspection PyTypeChecker
     ew_values = [_feature_table_pew(w, f, feature_table) for w, f in zip(wavelength, flux)]
     out_data = Table(rows=ew_values, names=feature_table['feature_name'])
     out_data['time'] = time

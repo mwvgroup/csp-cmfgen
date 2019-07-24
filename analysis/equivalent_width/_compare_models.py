@@ -5,22 +5,27 @@
 a given target and compares them against values predicted by CMFGEN.
 """
 
+from astropy.table import vstack
 
-def get_model_spectra(time, source):
+from ._calc_ew import tabulate_pew
+
+
+def get_model_spectra(time, wavelength, source):
     """Return the model spectra for a given model at multiple times
 
     Args:
-        time     (list): A list of observed MJD dates for each returned spectra
-        source (Source): An sncosmo source object
+        time       (list): List of times for each returned spectra
+        wavelength (list): A 2d list of wavelength values for each date
+        source   (Source): An sncosmo source object
 
     Returns:
-        A 2d list of wavelength values for each time value
-        A 2d list of flux values for each time valueeach date
+        A 2d list of flux values for each time value
     """
 
-    pass
+    return [source.flux(t, w) for t, w in zip(time, wavelength)]
 
 
+# noinspection PyTypeChecker
 def compare_target_and_models(time, wavelength, flux, feature_table, sources):
     """Tabulate modeled and measured pseudo equivalent widths
 
@@ -35,4 +40,14 @@ def compare_target_and_models(time, wavelength, flux, feature_table, sources):
         A table of modeled and measured equivalent widths for each feature
     """
 
-    pass
+    out_tables = [tabulate_pew(time, wavelength, flux, feature_table)]
+    for source in sources:
+        source_flux = get_model_spectra(time, wavelength, source)
+        ew_table = tabulate_pew(time, wavelength, source_flux, feature_table)
+
+        for col_name in ew_table.colnames:
+            ew_table.rename_column(col_name, col_name + f'_{source.version}')
+
+        out_tables.append(ew_table)
+
+    return vstack(out_tables)
