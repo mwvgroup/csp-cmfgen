@@ -142,10 +142,9 @@ def predict_light_curve(gp, bands, times):
         wavelengths = np.ones(len(times)) * effective_wavelength
 
         pred_x_data = np.vstack([times, wavelengths]).T
-
         band_pred, band_pred_var = gp(pred_x_data, return_var=True)
-        prediction_uncertainties.append(np.sqrt(band_pred_var))
 
+        prediction_uncertainties.append(np.sqrt(band_pred_var))
         predictions.append(band_pred)
 
     predictions = np.array(predictions)
