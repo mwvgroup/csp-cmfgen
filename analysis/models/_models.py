@@ -21,6 +21,7 @@ VERSION_PATHS = {
 }
 
 
+# noinspection PyMissingConstructor
 class GenericSource(sncosmo.Source):
     """SNCosmo source class for a CMFGEN model"""
 
@@ -83,6 +84,7 @@ class GenericSource(sncosmo.Source):
         return amplitude * self.spline(phase, wave)
 
 
+# noinspection PyUnusedLocal
 def get_model(name=None, version=None):
     """Return an SNCosmo CMFGEN source for a given model
 
