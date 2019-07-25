@@ -59,7 +59,7 @@ def get_kernel(scale, fix_scale, length_scale):
 
 
 def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
-    """Fit a gaussian regressor to a data table
+    """Fit photometric observations with a gaussian regression
 
     Args:
         data         (Table): Data table from sndata (format_sncosmo=True)
@@ -122,31 +122,66 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
     return partial(gp.predict, fluxes)
 
 
-def predict_light_curve(gp, bands, times):
-    """Predict the flux of a light curve
+def predict_band_flux(gp, band_name, times):
+    """Return the flux modeled by a gaussian regression in a single band
 
     Args:
-        gp             (GP): A fitted gaussian process
-        bands   (list[str]): Name of band passes to fit for
-        times (list[float]): Times to predict flux for
+        gp         (GP): A fitted gaussian process
+        band_name (str): Name of band pass to return flux for
+        times    (list): Times to predict flux for
 
     Returns:
-        The flux in each band
-        The errors in each band
+        An array of flux values for the given times
+        The errors in each flux value
     """
+
+    effective_wavelength = get_effective_wavelength(band_name)
+    wavelengths = np.ones(len(times)) * effective_wavelength
+    pred_x_data = np.vstack([times, wavelengths]).T
+    band_pred, band_pred_var = gp(pred_x_data, return_var=True)
+
+    return band_pred, band_pred_var
+
+
+def predict_light_curve(gp, bands, times):
+    """Return the flux modeled by a gaussian regression in multiple bands
+
+    Args:
+        gp      (GP): A fitted gaussian process
+        bands (list): Name of band passes to return flux for
+        times (list): Times to predict flux for
+
+    Returns:
+        A 2d array of flux values for each band
+        A 2d array of errors for the predicted flux
+    """
+
     predictions = []
     prediction_uncertainties = []
 
     for band in bands:
-        effective_wavelength = get_effective_wavelength(band)
-        wavelengths = np.ones(len(times)) * effective_wavelength
-
-        pred_x_data = np.vstack([times, wavelengths]).T
-        band_pred, band_pred_var = gp(pred_x_data, return_var=True)
+        band_pred, band_pred_var = predict_band_flux(gp, band, times)
 
         prediction_uncertainties.append(np.sqrt(band_pred_var))
         predictions.append(band_pred)
 
-    predictions = np.array(predictions)
-    prediction_uncertainties = np.array(prediction_uncertainties)
-    return predictions, prediction_uncertainties
+    return np.array(predictions), np.array(prediction_uncertainties)
+
+
+def predict_colors(gp, band_combos, times):
+    """Return color values modeled by a gaussian regression
+
+    Args:
+        gp            (GP): A fitted gaussian process
+        band_combos (list): List of tuples with band names to determine color for
+        times       (list): A 2d array of times for each band combination
+    """
+
+    color, color_var = [], []
+    for (band1, band2) in band_combos:
+        band1_pred, band1_var = predict_band_flux(gp, band1, times)
+        band2_pred, band2_var = predict_band_flux(gp, band2, times)
+        color.append(band1_pred - band2_pred)
+        color_var.append(band1_var + band2_var)
+
+    return color, color_var
