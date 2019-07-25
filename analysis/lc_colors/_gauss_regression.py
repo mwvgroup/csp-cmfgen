@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """This module fits light curves using gaussian regression as outlined in
-Boone et al. 2019. The source code is ported from the avocado package, which
-is described by the same paper.
+Boone et al. 2019. Some of the source code is ported from the avocado package,
+which is described by the same paper.
 """
 
 from functools import partial
