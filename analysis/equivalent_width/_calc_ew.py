@@ -101,14 +101,14 @@ def calc_pew(wavelength, flux, feat_start, feat_end, cont_func):
     """
 
     # Select the portion of the spectrum within the given bounds
-    indices = (feat_start < wavelength) & (wavelength < feat_end)
+    indices = (feat_start <= wavelength) & (wavelength <= feat_end)
     feature_wave = wavelength[indices]
     feature_flux = flux[indices]
 
     # Normalize the spectrum and calculate the EW
     continuum_flux = cont_func(feature_wave)
     normalized_flux = feature_flux / continuum_flux
-    return np.trapz(normalized_flux, feature_wave)
+    return feat_end - feat_start - np.trapz(normalized_flux, feature_wave)
 
 
 def _feature_table_pew(wavelength, flux, feature_table):
