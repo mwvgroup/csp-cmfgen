@@ -6,3 +6,4 @@ the fitted colors with colors predicted by CMFGEN."""
 
 from ._gauss_regression import fit_gaussian_process, predict_band_flux, \
     predict_colors, predict_light_curve
+from ._chi_squared import get_color_times, get_csp_ebv, get_csp_t0

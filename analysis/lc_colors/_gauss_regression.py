@@ -177,11 +177,10 @@ def predict_colors(gp, band_combos, times):
         times       (list): A 2d array of times for each band combination
     """
 
-    color, color_var = [], []
-    for (band1, band2) in band_combos:
-        band1_pred, band1_var = predict_band_flux(gp, band1, times)
-        band2_pred, band2_var = predict_band_flux(gp, band2, times)
-        color.append(band1_pred - band2_pred)
-        color_var.append(band1_var + band2_var)
+    color = []
+    for time, (band1, band2) in zip(times, band_combos):
+        band1_pred, band1_var = predict_band_flux(gp, band1, time)
+        band2_pred, band2_var = predict_band_flux(gp, band2, time)
+        color.append(-2.5 * (np.log10(band1_pred) - np.log10(band2_pred)))
 
-    return color, color_var
+    return color
