@@ -29,10 +29,10 @@ def get_effective_wavelength(band_name):
         The effective wavelength in Angstroms
     """
 
-    band = sncosmo.get_bandpass(band_name)
-    return band.wave_eff
+    return sncosmo.get_bandpass(band_name).wave_eff
 
 
+# Ported from avocado
 def get_kernel(scale, fix_scale, length_scale):
     """Return a Matern 3/2 Kernel
 
@@ -47,8 +47,7 @@ def get_kernel(scale, fix_scale, length_scale):
 
     kernel = (
             (0.5 * scale) ** 2 *
-            kernels.Matern32Kernel(
-                [length_scale ** 2, 6000 ** 2], ndim=2)
+            kernels.Matern32Kernel([length_scale ** 2, 6000 ** 2], ndim=2)
     )
     kernel.freeze_parameter('k2:metric:log_M_1_1')
 
@@ -58,6 +57,7 @@ def get_kernel(scale, fix_scale, length_scale):
     return kernel
 
 
+# Ported from avocado
 def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
     """Fit photometric observations with a gaussian regression
 
@@ -137,10 +137,8 @@ def predict_band_flux(gp, band_name, times):
 
     effective_wavelength = get_effective_wavelength(band_name)
     wavelengths = np.ones(len(times)) * effective_wavelength
-    pred_x_data = np.vstack([times, wavelengths]).T
-    band_pred, band_pred_var = gp(pred_x_data, return_var=True)
-
-    return band_pred, band_pred_var
+    predict_x_vals = np.vstack([times, wavelengths]).T
+    return gp(predict_x_vals, return_var=True)
 
 
 def predict_light_curve(gp, bands, times):
@@ -156,31 +154,34 @@ def predict_light_curve(gp, bands, times):
         A 2d array of errors for the predicted flux
     """
 
-    predictions = []
-    prediction_uncertainties = []
-
-    for band in bands:
-        band_pred, band_pred_var = predict_band_flux(gp, band, times)
-
-        prediction_uncertainties.append(np.sqrt(band_pred_var))
-        predictions.append(band_pred)
-
-    return np.array(predictions), np.array(prediction_uncertainties)
+    lc = np.array([predict_band_flux(gp, band, times) for band in bands])
+    return lc[:, 0, :], lc[:, 1, :]
 
 
-def predict_colors(gp, band_combos, times):
-    """Return color values modeled by a gaussian regression
+def predict_color(gp, band1, band2, time):
+    """Return the color value modeled by a gaussian regression
+
+    Returns the band1 - band2 color.
 
     Args:
-        gp            (GP): A fitted gaussian process
-        band_combos (list): List of tuples with band names to determine color for
-        times       (list): A 2d array of times for each band combination
+        gp     (GP): A fitted gaussian process
+        band1 (str): Name of the first band in the magnitude difference
+        band2 (str): Name of the second band in the magnitude difference
+        time (list): A 2d array of times for each band combination
+
+    Returns:
+        The predicted color
+        The variance in the predicted color
     """
 
-    color = []
-    for time, (band1, band2) in zip(times, band_combos):
-        band1_pred, band1_var = predict_band_flux(gp, band1, time)
-        band2_pred, band2_var = predict_band_flux(gp, band2, time)
-        color.append(-2.5 * (np.log10(band1_pred) - np.log10(band2_pred)))
-
-    return color
+    band1_pred, band1_var = predict_band_flux(gp, band1, time)
+    band2_pred, band2_var = predict_band_flux(gp, band2, time)
+    color = -2.5 * (np.log10(band1_pred) - np.log10(band2_pred))
+    error = (
+            (2.5 / np.log(10)) ** 2 *
+            (
+                    (band1_var / band1_pred) ** 2 +
+                    (band2_var / band2_pred) ** 2
+            )
+    )
+    return color, error
