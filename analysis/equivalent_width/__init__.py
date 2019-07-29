@@ -7,9 +7,8 @@ compares them with CMFGEN models.
 
 from astropy.table import Table as _Table
 
-from ._calc_ew import UnobservedFeature, calc_pew, get_continuum_func, \
-    get_feature_coordinates, tabulate_pew
-from ._compare_models import compare_target_and_models
+from ._calc_ew import UnobservedFeature, calc_pew, compare_target_and_models, \
+    get_continuum_func, get_feature_coordinates, tabulate_pew
 
 feature_table = _Table({
     'feature_name': ['pW1', 'pW2', 'pW3', 'pW4', 'pW5', 'pW6', 'pW7', 'pW8'],

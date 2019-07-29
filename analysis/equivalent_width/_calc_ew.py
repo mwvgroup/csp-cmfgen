@@ -6,7 +6,7 @@ width of arbitrary features for a one or more spectra.
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, hstack
 
 
 class UnobservedFeature(Exception):
@@ -90,11 +90,11 @@ def calc_pew(wavelength, flux, feat_start, feat_end, cont_func):
     returns flux in the same units as ``flux``.
 
     Args:
-        wavelength (array): An array of wavelength values
-        flux       (array): An array of flux values
-        feat_start (float): The starting wavelength of the feature
-        feat_end   (float): The ending wavelength of the feature
-        cont_func   (func): Function returning continuum flux for wavelength
+        wavelength (ndarray): An array of wavelength values
+        flux       (ndarray): An array of flux values
+        feat_start   (float): The starting wavelength of the feature
+        feat_end     (float): The ending wavelength of the feature
+        cont_func     (func): Function returning continuum flux for wavelength
 
     Returns:
        The pseudo equivalent width as a float
@@ -161,7 +161,8 @@ def tabulate_pew(time, wavelength, flux, feature_table):
     """
 
     # noinspection PyTypeChecker
-    ew_values = np.array([_feature_table_pew(w, f, feature_table) for w, f in zip(wavelength, flux)])
+    ew_values = np.array([_feature_table_pew(w, f, feature_table) for w, f in
+                          zip(wavelength, flux)])
 
     out_data = Table(
         names=feature_table['feature_name'],
@@ -171,3 +172,47 @@ def tabulate_pew(time, wavelength, flux, feature_table):
     out_data.mask = np.transpose(ew_values < 0)
     out_data['time'] = time
     return out_data[['time'] + out_data.colnames[:-1]]
+
+
+def get_model_spectra(time, wavelength, source):
+    """Return the model spectra for a given model at multiple times
+
+    Args:
+        time       (list): List of times for each returned spectra
+        wavelength (list): A 2d list of wavelength values for each date
+        source   (Source): An sncosmo source object
+
+    Returns:
+        A 2d list of flux values for each time value
+    """
+
+    return [source.flux(t, w) for t, w in zip(time, wavelength)]
+
+
+# noinspection PyTypeChecker
+def compare_target_and_models(time, wavelength, flux, feature_table, sources):
+    """Tabulate modeled and measured pseudo equivalent widths
+
+    Args:
+        time           (list): A list of observed MJD dates for each spectrum
+        wavelength    (array): A 2d list of wavelength values for each date
+        flux          (array): A 2d list of flux values for each date
+        feature_table (Table): A table defining spectral features
+        sources        (list): A list of sncosmo source objects
+
+    Returns:
+        A table of modeled and measured equivalent widths for each feature
+    """
+
+    out_tables = [tabulate_pew(time, wavelength, flux, feature_table)]
+    for source in sources:
+        source_flux = get_model_spectra(time, wavelength, source)
+        ew_table = tabulate_pew(time, wavelength, source_flux, feature_table)
+        ew_table.remove_column('time')
+
+        for col_name in ew_table.colnames:
+            ew_table.rename_column(col_name, col_name + f'_C{source.version}')
+
+        out_tables.append(ew_table)
+
+    return hstack(out_tables)
