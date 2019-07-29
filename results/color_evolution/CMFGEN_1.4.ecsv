@@ -1,0 +1,61 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - name: obj_id
+#   datatype: string
+# - name: u_g
+#   datatype: float64
+# - name: u_g_err
+#   datatype: float64
+# - name: g_r
+#   datatype: float64
+# - name: g_r_err
+#   datatype: float64
+# - name: r_i
+#   datatype: float64
+# - name: r_i_err
+#   datatype: float64
+# - name: i_B
+#   datatype: float64
+# - name: i_B_err
+#   datatype: float64
+# - name: B_V
+#   datatype: float64
+# - name: B_V_err
+#   datatype: float64
+# - name: V_Y
+#   datatype: float64
+# - name: V_Y_err
+#   datatype: float64
+# - name: Y_JH
+#   datatype: float64
+# - name: Y_JH_err
+#   datatype: float64
+# meta: !!omap
+# - source: CMFGEN
+# - version: '1.4'
+# - bands:
+#   - !!python/tuple
+#     - csp_dr3_u
+#     - csp_dr3_g
+#   - !!python/tuple
+#     - csp_dr3_g
+#     - csp_dr3_r
+#   - !!python/tuple
+#     - csp_dr3_r
+#     - csp_dr3_i
+#   - !!python/tuple
+#     - csp_dr3_i
+#     - csp_dr3_B
+#   - !!python/tuple
+#     - csp_dr3_B
+#     - csp_dr3_V
+#   - !!python/tuple
+#     - csp_dr3_V
+#     - csp_dr3_Y
+#   - !!python/tuple
+#     - csp_dr3_Y
+#     - csp_dr3_Jcsp_dr3_H
+# schema: astropy-2.0
+obj_id u_g u_g_err g_r g_r_err r_i r_i_err i_B i_B_err B_V B_V_err V_Y V_Y_err Y_JH Y_JH_err
+2004dt 1.2291767215045932 4.56082057429145e-07 1.7265707452033843 2.4361984538422136e-08 -1.7680219864452844 2.2389835370172722e-08 -0.8901938145559635 2.3816664198000327e-08 "" "" "" "" "" ""

@@ -6,6 +6,7 @@ an SNCosmo model.
 """
 
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from astropy.table import Table
@@ -15,8 +16,7 @@ from sndata.csp import dr1, dr3
 from ._lc_regression import fit_gaussian_process, predict_color
 from ..utils import make_pbar
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
+warnings.filterwarnings('ignore')
 
 
 def get_csp_t0(obj_id):
@@ -96,17 +96,18 @@ def calculate_color_residual(gp, model, band1, band2, tstart, tend):
     """
 
     def residual(time):
-        data_color, data_color_error = predict_color(gp, band1, band2, [time])
+        data_color = predict_color(gp, band1, band2, [time])
         model_color = model.color(band1, band2, 'ab', time)
-        return (data_color - model_color) / data_color_error
+        return (data_color - model_color) / (tend - tstart)
 
     return integrate.quad(residual, tstart, tend)
 
 
-def create_empty_output_table(band_combos):
-    """Create an empty astropy table for storing residuals
+def create_empty_output_table(model, band_combos):
+    """Create an empty astropy table for storing model residuals
 
     Args:
+        model      (Model): sncosmo model the table will be used for
         band_combos (list): List of tuples with band names to determine color for
 
     Returns:
@@ -122,7 +123,11 @@ def create_empty_output_table(band_combos):
         names += [col_name, col_name + '_err']
         dtype += [float, float]
 
-    return Table(names=names, dtype=dtype)
+    out_table = Table(names=names, dtype=dtype, masked=True)
+    out_table.meta['source'] = model.source.name
+    out_table.meta['version'] = model.source.version
+    out_table.meta['bands'] = band_combos
+    return out_table
 
 
 def tabulate_residuals(data_release, model, band_combos, verbose=True):
@@ -134,31 +139,37 @@ def tabulate_residuals(data_release, model, band_combos, verbose=True):
         band_combos    (list): List of tuples with band names
         verbose        (bool): Whether to display a progress bar
     """
+    model = deepcopy(model)
 
     # Construct iterator over data tables for each SN in the given data release
     total_iters = len(data_release.get_available_ids())
-    data_iterable = make_pbar(
+    data_pbar = make_pbar(
         data_release.iter_data(format_sncosmo=True),
         verbose=verbose,
         desc='Targets',
         total=total_iters)
 
-    out_table = create_empty_output_table(band_combos)
-    for data_table in data_iterable:
-        new_row = [data_table.meta['obj_id']]
+    out_table = create_empty_output_table(model, band_combos)
+    for data_table in data_pbar:
         gp = fit_gaussian_process(data_table)
+        obj_id = data_table.meta['obj_id']
+        new_row, mask = [obj_id], [False]
 
-        for band1, band2 in make_pbar(band_combos, verbose, desc='Colors', position=1):
+        band_pbar = make_pbar(band_combos, verbose, desc='Colors', position=1)
+        for band1, band2 in band_pbar:
             try:
                 tstart, tend = get_color_times(data_table, band1, band2)
+                model.set(extebv=get_csp_ebv(data_table.meta['obj_id']))
                 resid, resid_err = calculate_color_residual(
                     gp, model, band1, band2, tstart, tend)
 
+                new_row += [resid, resid_err]
+                mask += [False, False]
+
             except ValueError:
-                resid, resid_err = np.nan, np.nan
+                new_row += [np.nan, np.nan]
+                mask += [True, True]
 
-            new_row += [resid, resid_err]
-
-        out_table.add_row(new_row)
+        out_table.add_row(new_row, mask=mask)
 
     return Table(out_table)

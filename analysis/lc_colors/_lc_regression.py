@@ -155,7 +155,7 @@ def predict_light_curve(gp, bands, times):
     """
 
     lc = np.array([predict_band_flux(gp, band, times) for band in bands])
-    return lc[:, 0, :], lc[:, 1, :]
+    return lc[:, 0, :], np.sqrt(lc[:, 1, :])
 
 
 def predict_color(gp, band1, band2, time):
@@ -176,12 +176,4 @@ def predict_color(gp, band1, band2, time):
 
     band1_pred, band1_var = predict_band_flux(gp, band1, time)
     band2_pred, band2_var = predict_band_flux(gp, band2, time)
-    color = -2.5 * (np.log10(band1_pred) - np.log10(band2_pred))
-    error = (
-            (2.5 / np.log(10)) ** 2 *
-            (
-                    (band1_var / band1_pred) ** 2 +
-                    (band2_var / band2_pred) ** 2
-            )
-    )
-    return color, error
+    return -2.5 * (np.log10(band1_pred) - np.log10(band2_pred))
