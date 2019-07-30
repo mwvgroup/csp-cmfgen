@@ -5,8 +5,15 @@
 width of arbitrary features for a one or more spectra.
 """
 
+from pathlib import Path
+
 import numpy as np
-from astropy.table import Table, hstack
+import yaml
+from astropy.table import Table
+from astropy.table import hstack
+
+with open(Path(__file__).parent / 'features.yml') as infile:
+    features = yaml.load(infile)
 
 
 class UnobservedFeature(Exception):
@@ -174,21 +181,6 @@ def tabulate_pew(time, wavelength, flux, feature_table):
     return out_data[['time'] + out_data.colnames[:-1]]
 
 
-def get_model_spectra(time, wavelength, source):
-    """Return the model spectra for a given model at multiple times
-
-    Args:
-        time       (list): List of times for each returned spectra
-        wavelength (list): A 2d list of wavelength values for each date
-        source   (Source): An sncosmo source object
-
-    Returns:
-        A 2d list of flux values for each time value
-    """
-
-    return [source.flux(t, w) for t, w in zip(time, wavelength)]
-
-
 # noinspection PyTypeChecker
 def compare_target_and_models(time, wavelength, flux, feature_table, sources):
     """Tabulate modeled and measured pseudo equivalent widths
@@ -206,7 +198,7 @@ def compare_target_and_models(time, wavelength, flux, feature_table, sources):
 
     out_tables = [tabulate_pew(time, wavelength, flux, feature_table)]
     for source in sources:
-        source_flux = get_model_spectra(time, wavelength, source)
+        source_flux = [source.flux(t, w) for t, w in zip(time, wavelength)]
         ew_table = tabulate_pew(time, wavelength, source_flux, feature_table)
         ew_table.remove_column('time')
 
