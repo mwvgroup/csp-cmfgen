@@ -4,6 +4,7 @@
 """Command line interface for the analysis package."""
 
 import argparse
+import warnings
 from pathlib import Path
 
 import sncosmo
@@ -14,6 +15,7 @@ from analysis import equivalent_width
 from analysis import lc_colors
 from analysis import models
 
+warnings.filterwarnings('ignore')
 models.register_sources()
 dr1.download_module_data()
 dr3.download_module_data()
@@ -61,7 +63,8 @@ def run_lc_color(cli_args):
         'csp_dr3_H',
     ]
 
-    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in range(len(unique_bands) - 1)]
+    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in
+                    range(len(unique_bands) - 1)]
     out_dir = Path(cli_args.out_dir) / 'color_evolution'
     tqdm.write('Tabulating color evolution')
     for model in get_models(cli_args.models):
@@ -94,7 +97,8 @@ def run_ew(cli_args):
 
 # Parse command line input
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Compare various SN models against CSP data.')
+    parser = argparse.ArgumentParser(
+        description='Compare various SN models against CSP data.')
     subparsers = parser.add_subparsers(help='')
 
     parser.add_argument(
@@ -103,7 +107,8 @@ if __name__ == '__main__':
         default=['./'],
         help='Output directory')
 
-    color_parser = subparsers.add_parser('lc_color', help='Compare color evolution with models.')
+    color_parser = subparsers.add_parser(
+        'lc_color', help='Compare color evolution with models.')
     color_parser.set_defaults(func=run_lc_color)
     color_parser.add_argument(
         '-m', '--models',
@@ -112,12 +117,13 @@ if __name__ == '__main__':
         default=['salt,2.4'],
         help='Models to use')
 
-    ew_parser = subparsers.add_parser('equivalent_width', help='Calculate pseudo equivalent width values')
+    ew_parser = subparsers.add_parser(
+        'equivalent_width', help='Calculate pseudo equivalent width values')
     ew_parser.set_defaults(func=run_ew)
     ew_parser.add_argument(
         '-f', '--fix_boundaries',
-        type=bool,
         default=False,
+        action='store_true',
         help='Fix feature bounds to measured values')
 
     ew_parser.add_argument(

@@ -5,7 +5,6 @@
 an SNCosmo model.
 """
 
-import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -14,8 +13,6 @@ from scipy import integrate
 
 from ._lc_regression import fit_gaussian_process, predict_color
 from ..utils import get_csp_ebv, make_pbar
-
-warnings.filterwarnings('ignore')
 
 
 def get_color_times(data, band1, band2):
