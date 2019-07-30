@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+
+"""Tests for the ``analysis.equivalent_width`` module."""
+
 from unittest import TestCase
 
 import numpy as np
@@ -144,6 +149,7 @@ class EWCalculation(TestCase):
 
 
 class Tabulation(TestCase):
+    """Tests for the compilation of pew results into a single table"""
 
     @classmethod
     def setUpClass(cls):
