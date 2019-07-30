@@ -11,25 +11,11 @@ from warnings import warn
 
 import george
 import numpy as np
-import sncosmo
 from astropy.table import Table
 from george import kernels
 from scipy.optimize import minimize
 
-
-def get_effective_wavelength(band_name):
-    """Get the effective wavelength for a given band
-
-    Band name must be registered with SNCosmo
-
-    Args:
-        band_name (str): The name of a registered bandpass
-
-    Returns:
-        The effective wavelength in Angstroms
-    """
-
-    return sncosmo.get_bandpass(band_name).wave_eff
+from ..utils import get_effective_wavelength
 
 
 # Ported from avocado
@@ -63,7 +49,7 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
 
     Args:
         data         (Table): Data table from sndata (format_sncosmo=True)
-        fix_scale     (bool): Whether to fix the scale while fitting (Default: True)
+        fix_scale     (bool): Whether to fix the scale while fitting
         length_scale (float): The initial length scale to use for the fit.
 
     Returns:

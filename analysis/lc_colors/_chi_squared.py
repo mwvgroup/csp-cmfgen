@@ -62,7 +62,7 @@ def get_color_times(data, band1, band2):
     Args:
         data  (Table): Data returned by sndata
         band1   (str): The name of a bandpass in data['band']
-        band1   (str): The name of a bandpass in data['band']
+        band2   (str): The name of a bandpass in data['band']
 
     Returns:
         The start time
@@ -160,6 +160,7 @@ def tabulate_residuals(data_release, model, band_combos, verbose=True):
             try:
                 tstart, tend = get_color_times(data_table, band1, band2)
                 model.set(extebv=get_csp_ebv(data_table.meta['obj_id']))
+                # noinspection PyTupleAssignmentBalance
                 resid, resid_err = calculate_color_residual(
                     gp, model, band1, band2, tstart, tend)
 
