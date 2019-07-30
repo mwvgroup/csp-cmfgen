@@ -1,6 +1,7 @@
 astropy
 bokeh
 george
+kernel
 matplotlib
 numpy==1.16.2
 requests
@@ -9,5 +10,4 @@ sncosmo
 tqdm
 iminuit
 sndata
-
-kernel
+yaml

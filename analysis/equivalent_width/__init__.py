@@ -6,10 +6,10 @@ compares them with CMFGEN models.
 """
 
 from ._calc_ew import (
+    FEATURES as features,
     UnobservedFeature,
     calc_pew,
-    compare_target_and_models,
-    features,
     get_continuum_func,
-    get_feature_coordinates,
-    tabulate_pew)
+    get_feature_bounds,
+    tabulate_pew,
+    tabulate_pew_spectrum)

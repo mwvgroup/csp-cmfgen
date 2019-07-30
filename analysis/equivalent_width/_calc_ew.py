@@ -9,11 +9,12 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from astropy.table import Table
-from astropy.table import hstack
+from astropy.table import Table, vstack
+
+from ..utils import make_pbar, parse_spectra_table
 
 with open(Path(__file__).parent / 'features.yml') as infile:
-    features = yaml.load(infile)
+    FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
 
 
 class UnobservedFeature(Exception):
@@ -21,7 +22,7 @@ class UnobservedFeature(Exception):
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
-def _get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
+def get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
     """Return coordinates of the maximum flux within given wavelength bounds
 
     Args:
@@ -45,67 +46,76 @@ def _get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
     feature_wavelength = wavelength[feature_indices]
 
     peak_index = np.argmax(feature_flux)
-    return feature_wavelength[peak_index], feature_flux[peak_index]
+    return feature_wavelength[peak_index]
 
 
-def get_feature_coordinates(wavelength, flux, feature):
+def get_feature_bounds(wavelength, flux, feature):
     """Get the start and end wavelengths / flux for a given feature
 
     Args:
         wavelength (array): An array of wavelength values
         flux       (array): An array of flux values
-        feature      (row): A row from the ``feature`` table
+        feature      (row): A dictionary defining feature parameters
 
     Returns:
-        A list with the blueward and redward wavelengths
-        A list with the blueward and redward flux values
+        The starting wavelength of the feature
+        The ending wavelength of the feature
     """
 
-    blue_wave, blue_flux = _get_peak_coordinates(
+    feat_start = get_peak_coordinates(
         wavelength, flux, feature['lower_blue'], feature['upper_blue'])
 
-    red_wave, red_flux = _get_peak_coordinates(
+    feat_end = get_peak_coordinates(
         wavelength, flux, feature['lower_red'], feature['upper_red'])
 
-    return [blue_wave, red_wave], [blue_flux, red_flux]
+    return feat_start, feat_end
 
 
-def get_continuum_func(blue_wave, red_wave, blue_flux, red_flux):
+def get_continuum_func(wavelength, flux, feat_start, feat_end):
     """Fit the pseudo continuum for a given feature
-
-    Args:
-        blue_wave (float): Starting wavelength of the feature
-        red_wave  (float): Flux value of spectrum at ``blue_wave``
-        blue_flux (float): Ending wavelength of the feature
-        red_flux  (float): Flux value of spectrum at ``red_flux``
-
-    Return:
-        A linear function fit to the flux peaks bounding a feature
-    """
-
-    m = (red_flux - blue_flux) / (red_wave - blue_wave)
-    b = blue_flux - m * blue_wave
-    return lambda wave: m * np.array(wave) + b
-
-
-# noinspection PyTypeChecker, PyUnresolvedReferences
-def calc_pew(wavelength, flux, feat_start, feat_end, cont_func):
-    """Generic function for calculating the pseudo equivalent width
-
-    The ``cont_func`` argument should be a vectorized function that accepts
-    an array of wavelengths in the same units as ``wavelength`` and
-    returns flux in the same units as ``flux``.
 
     Args:
         wavelength (ndarray): An array of wavelength values
         flux       (ndarray): An array of flux values
         feat_start   (float): The starting wavelength of the feature
         feat_end     (float): The ending wavelength of the feature
-        cont_func     (func): Function returning continuum flux for wavelength
+
+    Return:
+        A linear function fit to the flux values bounding a feature
+    """
+
+    blue_flux = flux[wavelength == feat_start]
+    red_flux = flux[wavelength == feat_end]
+    m = (red_flux - blue_flux) / (feat_end - feat_start)
+    b = blue_flux - m * feat_start
+    return lambda wave: m * np.array(wave) + b
+
+
+# noinspection PyTypeChecker, PyUnresolvedReferences
+def calc_pew(wavelength, flux, feat_start=None, feat_end=None, feature=None):
+    """Generic function for calculating the pseudo equivalent width
+
+    If ``feat_start`` and ``feat_end`` are given, use them to determine the
+    continuum flux. If they aren't specified by ``feature`` is, estimate
+    the boundaries of the feature.
+
+    Args:
+        wavelength (ndarray): An array of wavelength values
+        flux       (ndarray): An array of flux values
+        feat_start   (float): The starting wavelength of the feature
+        feat_end     (float): The ending wavelength of the feature
+        feature       (dict): A dictionary defining feature parameters
 
     Returns:
        The pseudo equivalent width as a float
     """
+
+    if (feat_start is None) or (feat_end is None):
+        if feature is None:
+            raise ValueError(
+                'Must specify either feature bounds or feature dict.')
+
+        feat_start, feat_end = get_feature_bounds(wavelength, flux, feature)
 
     # Select the portion of the spectrum within the given bounds
     indices = (feat_start <= wavelength) & (wavelength <= feat_end)
@@ -113,98 +123,102 @@ def calc_pew(wavelength, flux, feat_start, feat_end, cont_func):
     feature_flux = flux[indices]
 
     # Normalize the spectrum and calculate the EW
+    cont_func = get_continuum_func(wavelength, flux, feat_start, feat_end)
     continuum_flux = cont_func(feature_wave)
     normalized_flux = feature_flux / continuum_flux
-    return feat_end - feat_start - np.trapz(normalized_flux, feature_wave)
+    pew = feat_end - feat_start - np.trapz(normalized_flux, feature_wave)
+    return pew, feat_start, feat_end
 
 
-def _feature_table_pew(wavelength, flux, feature_table):
-    """Calculate the pseudo equivalent width for a table of features
-
-    See the ``equivalent_width.feature`` table for an example of the
-    ``feature_table`` argument.
+def create_empty_pew_table(models):
+    """Create an astropy Table to store pew results
 
     Args:
-        wavelength    (array): An array of wavelength values
-        flux          (array): An array of flux values
-        feature_table (Table): A table defining spectral features
+        models (list): A list of sncosmo models
 
     Returns:
-       The pseudo equivalent width as a float
+        An astropy table
     """
 
-    ew_values = []
-    for feature in feature_table:
-        try:
-            feat_wave, feat_flux = get_feature_coordinates(wavelength, flux,
-                                                           feature)
+    # First row represents observed data
+    model_names = [f'{m.source.name}' for m in models]
+    model_versions = [f'{m.source.name}' for m in models]
+    out_table = Table(
+        data=[['obs'] + model_names, [''] + model_versions],
+        names=['model', 'version'],
+        dtype=['U100', 'U100'])
 
-        except UnobservedFeature:
-            ew_values.append(-99)
-
-        else:
-            cont_func = get_continuum_func(*feat_wave, *feat_flux)
-            ew = calc_pew(wavelength, flux, feat_wave[0], feat_wave[1],
-                          cont_func)
-            ew_values.append(ew)
-
-    return ew_values
+    return out_table
 
 
-def tabulate_pew(time, wavelength, flux, feature_table):
-    """Tabulate the pseudo equivalent widths for multiple spectra / features
-
-    See the ``equivalent_width.feature`` table for an example of the
-    ``feature_table`` argument.
+def tabulate_pew_spectrum(time, wavelength, flux, models, fix_boundaries):
+    """Tabulate the observed and modeled pew for multiple features
 
     Args:
-        time           (list): A list of observed MJD dates for each spectrum
-        wavelength    (array): A 2d list of wavelength values for each date
-        flux          (array): A 2d list of flux values for each date
-        feature_table (Table): A table defining spectral features
+        time          (float): The time of the observed spectrum
+        wavelength  (ndarray): An array of wavelength values
+        flux        (ndarray): An array of flux values
+        models         (list): A list of sncosmo models
+        fix_boundaries (bool): Fix feature boundaries to observed values
+
+    Returns:
+        An astropy table
+    """
+
+    out_table = create_empty_pew_table(models)
+    for feat_name, feature in FEATURES.items():
+        # Calculate pew for observed data
+        try:
+            pew, obs_feat_start, obs_feat_end = calc_pew(
+                wavelength, flux, feature=feature)
+
+            pew_column = [pew]
+            feat_start_col = [obs_feat_start]
+            feat_end_col = [obs_feat_end]
+
+        except UnobservedFeature:
+            continue
+
+        if not fix_boundaries:
+            obs_feat_start, obs_feat_end = None, None
+
+        # Calculate pew for models
+        for model in models:
+            model_flux = model.flux(time, wavelength)
+            pew, feat_start, feat_end = calc_pew(
+                wavelength, model_flux, obs_feat_start, obs_feat_end, feature)
+
+            pew_column.append(pew)
+            feat_start_col.append(feat_start)
+            feat_end_col.append(feat_end)
+
+        out_table[feat_name] = pew_column
+        out_table[feat_name + '_start'] = feat_start_col
+        out_table[feat_name + '_end'] = feat_end_col
+
+    return out_table
+
+
+# Todo: Specify target extinction for each model
+# Todo: Align time values for each model / target
+def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
+    """Tabulate the pseudo equivalent widths for multiple spectra / features
+
+    Args:
+        data_release (module): An sndata data release
+        models         (list): A list of sncosmo models
+        fix_boundaries (bool): Fix feature boundaries to observed values
+        verbose        (bool): Whether to display a progress bar
 
     Returns:
        A table of equivalent widths over time
     """
 
-    # noinspection PyTypeChecker
-    ew_values = np.array([_feature_table_pew(w, f, feature_table) for w, f in
-                          zip(wavelength, flux)])
+    pew_data = []
+    data_iter = make_pbar(data_release.iter_data(), verbose, desc='Targets')
+    for data_table in data_iter:
+        spectra = make_pbar(zip(*parse_spectra_table(data_table)), verbose, desc='Spectra', position=1)
+        pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra])
+        pew_table['obj_id'] = data_table.meta['obj_id']
 
-    out_data = Table(
-        names=feature_table['feature_name'],
-        rows=ew_values,
-        masked=True)
-
-    out_data.mask = np.transpose(ew_values < 0)
-    out_data['time'] = time
-    return out_data[['time'] + out_data.colnames[:-1]]
-
-
-# noinspection PyTypeChecker
-def compare_target_and_models(time, wavelength, flux, feature_table, sources):
-    """Tabulate modeled and measured pseudo equivalent widths
-
-    Args:
-        time           (list): A list of observed MJD dates for each spectrum
-        wavelength    (array): A 2d list of wavelength values for each date
-        flux          (array): A 2d list of flux values for each date
-        feature_table (Table): A table defining spectral features
-        sources        (list): A list of sncosmo source objects
-
-    Returns:
-        A table of modeled and measured equivalent widths for each feature
-    """
-
-    out_tables = [tabulate_pew(time, wavelength, flux, feature_table)]
-    for source in sources:
-        source_flux = [source.flux(t, w) for t, w in zip(time, wavelength)]
-        ew_table = tabulate_pew(time, wavelength, source_flux, feature_table)
-        ew_table.remove_column('time')
-
-        for col_name in ew_table.colnames:
-            ew_table.rename_column(col_name, col_name + f'_C{source.version}')
-
-        out_tables.append(ew_table)
-
-    return hstack(out_tables)
+    return vstack(pew_data)
