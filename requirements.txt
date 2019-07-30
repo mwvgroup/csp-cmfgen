@@ -9,5 +9,5 @@ scipy
 sncosmo
 tqdm
 iminuit
-sndata
+sndata>=0.5.0
 yaml

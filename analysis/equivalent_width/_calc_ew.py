@@ -163,7 +163,7 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
 
     Args:
         time          (float): The time of the observed spectrum
-        wave  (ndarray): An array of wavelength values
+        wave        (ndarray): An array of wavelength values
         flux        (ndarray): An array of flux values
         models         (list): A list of sncosmo models
         fix_boundaries (bool): Fix feature boundaries to observed values
@@ -173,6 +173,8 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
     """
 
     out_table = create_pew_summary_table(models)
+    out_table['time'] = time
+
     for feat_name, feature in FEATURES.items():
         # Calculate pew for observed data
         try:
@@ -230,13 +232,10 @@ def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
             for model in models:
                 model.set(extebv=get_csp_ebv(obj_id))
 
-            # Todo: This time shift is incorrect
+            # Todo: I'm not convinced this is the right thing to do
             time -= get_csp_t0(obj_id)
 
         except ValueError:
-            pew_table = create_pew_summary_table(models)
-            pew_table['obj_id'] = data_table.meta['obj_id']
-            pew_data.append(pew_table)
             continue
 
         spectra_iter = make_pbar(

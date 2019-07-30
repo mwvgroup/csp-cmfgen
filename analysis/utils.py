@@ -3,6 +3,7 @@
 
 """Utility functions used across the analysis package."""
 
+import numpy as np
 import sncosmo
 from sndata.csp import dr1, dr3
 from tqdm import tqdm
@@ -22,8 +23,7 @@ def get_csp_t0(obj_id):
     if obj_id not in params['SN']:
         raise ValueError(f'No published t0 for {obj_id}')
 
-    # Subtract 53000 to convert to zero point in DR3 photometry data tables
-    return params[params['SN'] == obj_id]['T(Bmax)'][0] - 53000
+    return params[params['SN'] == obj_id]['T(Bmax)'][0]
 
 
 def get_csp_ebv(obj_id):
@@ -99,4 +99,5 @@ def parse_spectra_table(data):
         wavelength.append(data_for_date['wavelength'])
         flux.append(data_for_date['flux'])
 
-    return obs_dates, wavelength, flux
+    obs_dates = np.array(obs_dates) - 2400000.5  # Convert from JD to MJD
+    return obs_dates, np.array(wavelength), np.array(flux)
