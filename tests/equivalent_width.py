@@ -9,7 +9,7 @@ import numpy as np
 import sncosmo
 from sndata.csp import dr1
 
-from analysis import equivalent_width
+from analysis import equivalent_width as equiv_width
 from analysis import models
 from analysis import utils
 
@@ -32,7 +32,7 @@ class FeatureIdentification(TestCase):
         """Test the correct peak wavelength is found for a single flux spike"""
 
         expected_peak = self.peak_wavelengths[0]
-        recovered_peak = equivalent_width._calc_ew.get_peak_coordinates(
+        recovered_peak = equiv_width._calc_ew.get_peak_coordinates(
             self.wavelength,
             self.flux,
             expected_peak - 10,
@@ -45,8 +45,8 @@ class FeatureIdentification(TestCase):
         """Test an error is raise if the feature is out of bounds"""
 
         max_wavelength = max(self.wavelength)
-        with self.assertRaises(equivalent_width.UnobservedFeature):
-            equivalent_width._calc_ew.get_peak_coordinates(
+        with self.assertRaises(equiv_width.UnobservedFeature):
+            equiv_width._calc_ew.get_peak_coordinates(
                 self.wavelength,
                 self.flux,
                 max_wavelength + 10,
@@ -58,7 +58,7 @@ class FeatureIdentification(TestCase):
 
         lower_peak_wavelength = min(self.peak_wavelengths)
         upper_peak_wavelength = max(self.peak_wavelengths)
-        recovered_lower_peak = equivalent_width._calc_ew.get_peak_coordinates(
+        recovered_lower_peak = equiv_width._calc_ew.get_peak_coordinates(
             self.wavelength,
             self.flux,
             lower_peak_wavelength - 10,
@@ -66,7 +66,7 @@ class FeatureIdentification(TestCase):
             'min'
         )
 
-        recovered_upper_peak = equivalent_width._calc_ew.get_peak_coordinates(
+        recovered_upper_peak = equiv_width._calc_ew.get_peak_coordinates(
             self.wavelength,
             self.flux,
             lower_peak_wavelength - 10,
@@ -90,7 +90,7 @@ class FeatureIdentification(TestCase):
             'upper_red': upper_peak_wavelength + 10
         }
 
-        feat_start, feat_end = equivalent_width.get_feature_bounds(
+        feat_start, feat_end = equiv_width.get_feature_bounds(
             self.wavelength, self.flux, feature_dict)
 
         self.assertEqual(
@@ -126,7 +126,7 @@ class EWCalculation(TestCase):
     def test_continuum_func(self):
         """Test fitting the continuum returns correct slope and intercept"""
 
-        cont_func = equivalent_width.fit_continuum_func(
+        cont_func = equiv_width.fit_continuum_func(
             self.feat_wave, self.feat_flux, 0, self.feat_width)
 
         fit_cont_params = np.polyfit(self.feat_wave, cont_func(self.feat_wave))
@@ -139,7 +139,7 @@ class EWCalculation(TestCase):
     def test_calc_ew(self):
         """Test the measured and simulated pew agree"""
 
-        pew, feat_start, feat_end = equivalent_width.calc_pew(
+        pew, feat_start, feat_end = equiv_width.calc_pew(
             self.feat_wave, self.feat_flux, feat_start=0,
             feat_end=self.feat_width)
 
@@ -173,12 +173,10 @@ class Tabulation(TestCase):
         cls.flux = fluxes[0]
 
     def test_create_pew_table(self):
-        """Test the """
+        """Test the pew summary table has the correct length and columns"""
 
-        table = equivalent_width._calc_ew.create_pew_summary_table(
-            self.model_list)
-        self.assertIn('model', table.colnames)
-        self.assertIn('version', table.colnames)
+        table = equiv_width._calc_ew.create_pew_summary_table(self.model_list)
+        self.assertSequenceEqual(['model', 'version'], table.colnames)
 
         # Expect one row per model plus one for observed data
         expected_len = len(self.model_list) + 1
@@ -197,10 +195,10 @@ class Tabulation(TestCase):
         test_feature = 'pW3'
 
         # Determine pew for free and fixed bounds
-        free_ew = equivalent_width.tabulate_pew_spectrum(
+        free_ew = equiv_width.tabulate_pew_spectrum(
             self.obs_date, self.wavelength, self.flux, self.model_list, False)
 
-        fixed_ew = equivalent_width.tabulate_pew_spectrum(
+        fixed_ew = equiv_width.tabulate_pew_spectrum(
             self.obs_date, self.wavelength, self.flux, self.model_list, True)
 
         # Check that free boundaries are not all the same
