@@ -175,7 +175,8 @@ class Tabulation(TestCase):
     def test_create_pew_table(self):
         """Test the """
 
-        table = equivalent_width._calc_ew.create_pew_summary_table(self.model_list)
+        table = equivalent_width._calc_ew.create_pew_summary_table(
+            self.model_list)
         self.assertIn('model', table.colnames)
         self.assertIn('version', table.colnames)
 
@@ -213,3 +214,8 @@ class Tabulation(TestCase):
         num_fixed_ends = len(set(fixed_ew[test_feature + '_start']))
         self.assertEqual(num_fixed_starts, 1, 'Fixed lower bounds vary')
         self.assertEqual(num_fixed_ends, 1, 'Fixed upper bounds vary')
+
+
+# Todo: Compare interpolated pew results and against published pew data
+class PEWInterpolation(TestCase):
+    pass

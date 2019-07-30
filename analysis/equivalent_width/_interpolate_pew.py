@@ -6,7 +6,7 @@
 import numpy as np
 
 
-def interpolate_bmax_spectra(time, ew_vals, tmax):
+def interpolate_bmax_pew(time, ew_vals, tmax):
     """Interpolate time dependent equivalent widths
 
     Interpolate equivalent width values to determine the value at the time
