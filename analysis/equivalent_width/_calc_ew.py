@@ -11,7 +11,7 @@ import numpy as np
 import yaml
 from astropy.table import Table, vstack
 
-from ..utils import make_pbar, parse_spectra_table
+from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
 
 with open(Path(__file__).parent / 'features.yml') as infile:
     FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
@@ -92,7 +92,7 @@ def get_continuum_func(wavelength, flux, feat_start, feat_end):
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
-def calc_pew(wavelength, flux, feat_start=None, feat_end=None, feature=None):
+def calc_pew(wavelength, flux, feature=None, feat_start=None, feat_end=None):
     """Generic function for calculating the pseudo equivalent width
 
     If ``feat_start`` and ``feat_end`` are given, use them to determine the
@@ -102,9 +102,9 @@ def calc_pew(wavelength, flux, feat_start=None, feat_end=None, feature=None):
     Args:
         wavelength (ndarray): An array of wavelength values
         flux       (ndarray): An array of flux values
+        feature       (dict): A dictionary defining feature parameters
         feat_start   (float): The starting wavelength of the feature
         feat_end     (float): The ending wavelength of the feature
-        feature       (dict): A dictionary defining feature parameters
 
     Returns:
        The pseudo equivalent width as a float
@@ -151,12 +151,12 @@ def create_empty_pew_table(models):
     return out_table
 
 
-def tabulate_pew_spectrum(time, wavelength, flux, models, fix_boundaries):
+def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
     """Tabulate the observed and modeled pew for multiple features
 
     Args:
         time          (float): The time of the observed spectrum
-        wavelength  (ndarray): An array of wavelength values
+        wave  (ndarray): An array of wavelength values
         flux        (ndarray): An array of flux values
         models         (list): A list of sncosmo models
         fix_boundaries (bool): Fix feature boundaries to observed values
@@ -169,38 +169,46 @@ def tabulate_pew_spectrum(time, wavelength, flux, models, fix_boundaries):
     for feat_name, feature in FEATURES.items():
         # Calculate pew for observed data
         try:
-            pew, obs_feat_start, obs_feat_end = calc_pew(
-                wavelength, flux, feature=feature)
-
-            pew_column = [pew]
-            feat_start_col = [obs_feat_start]
-            feat_end_col = [obs_feat_end]
+            pew, feat_start, feat_end = calc_pew(wave, flux, feature)
+            pew_data = [[pew, feat_start, feat_end]]
 
         except UnobservedFeature:
             continue
 
+        # Reset feature boundaries
         if not fix_boundaries:
-            obs_feat_start, obs_feat_end = None, None
+            feat_start, feat_end = None, None
 
         # Calculate pew for models
         for model in models:
-            model_flux = model.flux(time, wavelength)
-            pew, feat_start, feat_end = calc_pew(
-                wavelength, model_flux, obs_feat_start, obs_feat_end, feature)
+            model_pew_results = calc_pew(
+                wave, model.flux(time, wave), feature, feat_start, feat_end)
 
-            pew_column.append(pew)
-            feat_start_col.append(feat_start)
-            feat_end_col.append(feat_end)
+            pew_data.append(model_pew_results)
 
-        out_table[feat_name] = pew_column
-        out_table[feat_name + '_start'] = feat_start_col
-        out_table[feat_name + '_end'] = feat_end_col
+        new_columns = np.transpose(pew_data)
+        out_table[feat_name] = new_columns[0]
+        out_table[feat_name + '_start'] = new_columns[1]
+        out_table[feat_name + '_end'] = new_columns[2]
 
     return out_table
 
 
-# Todo: Specify target extinction for each model
-# Todo: Align time values for each model / target
+def shift_models_to_data(obj_id, models):
+    """Set models to observed extinction and t0 values
+
+    Args:
+        obj_id  (str): A CSP object id
+        models (list): A list of sncomso models
+    """
+
+    for model in models:
+        model.set(extebv=get_csp_ebv(obj_id))
+
+        # Todo: This time shift doesn't work
+        model.set(t0=get_csp_t0(obj_id))
+
+
 def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
     """Tabulate the pseudo equivalent widths for multiple spectra / features
 
@@ -215,10 +223,33 @@ def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
     """
 
     pew_data = []
-    data_iter = make_pbar(data_release.iter_data(), verbose, desc='Targets')
+    total_targets = len(data_release.get_available_ids())
+    data_iter = make_pbar(
+        iterable=data_release.iter_data(),
+        verbose=verbose,
+        desc='Targets',
+        total=total_targets)
+
     for data_table in data_iter:
-        spectra = make_pbar(zip(*parse_spectra_table(data_table)), verbose, desc='Spectra', position=1)
-        pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra])
+        try:
+            shift_models_to_data(data_table.meta['obj_id'], models)
+
+        except ValueError:
+            continue
+
+        data_arrays = parse_spectra_table(data_table)
+        spectra_iter = make_pbar(
+            iterable=zip(*data_arrays),
+            verbose=verbose,
+            desc='Spectra',
+            position=1,
+            total=len(data_arrays[0]))
+
+        pew_table = vstack(
+            [tabulate_pew_spectrum(*s, models, fix_boundaries) for s in
+             spectra_iter])
+
         pew_table['obj_id'] = data_table.meta['obj_id']
+        pew_data.append(pew_table)
 
     return vstack(pew_data)
