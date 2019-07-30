@@ -137,7 +137,7 @@ def calc_pew(wavelength, flux, feature=None, feat_start=None, feat_end=None):
     return pew, feat_start, feat_end
 
 
-def create_empty_pew_table(models):
+def create_pew_summary_table(models):
     """Create an astropy Table to store pew results
 
     Args:
@@ -172,7 +172,7 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
         An astropy table
     """
 
-    out_table = create_empty_pew_table(models)
+    out_table = create_pew_summary_table(models)
     for feat_name, feature in FEATURES.items():
         # Calculate pew for observed data
         try:
