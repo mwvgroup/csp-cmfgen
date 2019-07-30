@@ -22,14 +22,20 @@ class UnobservedFeature(Exception):
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
-def get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
-    """Return coordinates of the maximum flux within given wavelength bounds
+def get_peak_coordinates(
+        wavelength, flux, lower_bound, upper_bound, behavior='min'):
+    """Return wavelength of the maximum flux within given wavelength bounds
+
+    The behavior argument can be used to select the 'min' or 'max' wavelength
+    when there are multiple wavelengths having the same peak flux value. The
+    default behavior is 'min'.
 
     Args:
-        wavelength  (array): An array of wavelength values
-        flux        (array): An array of flux values
-        lower_bound (float): Lower wavelength boundary
-        upper_bound (float): Upper wavelength boundary
+        wavelength (ndarray): An array of wavelength values
+        flux       (ndarray): An array of flux values
+        lower_bound  (float): Lower wavelength boundary
+        upper_bound  (float): Upper wavelength boundary
+        behavior       (str): Return the 'min' or 'max' wavelength
 
     Returns:
         The wavelength for the maximum flux value
@@ -37,7 +43,7 @@ def get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
     """
 
     # Make sure the given spectrum spans the given wavelength bounds
-    if (min(wavelength) >= lower_bound) or (upper_bound >= max(wavelength)):
+    if (min(wavelength) > lower_bound) or (upper_bound > max(wavelength)):
         raise UnobservedFeature('Feature not in spectral wavelength range.')
 
     # Select the portion of the spectrum within the given bounds
@@ -46,16 +52,17 @@ def get_peak_coordinates(wavelength, flux, lower_bound, upper_bound):
     feature_wavelength = wavelength[feature_indices]
 
     peak_index = np.argmax(feature_flux)
-    return feature_wavelength[peak_index]
+    behavior_func = {'min': np.min, 'max': np.max}[behavior]
+    return behavior_func(feature_wavelength[peak_index])
 
 
 def get_feature_bounds(wavelength, flux, feature):
     """Get the start and end wavelengths / flux for a given feature
 
     Args:
-        wavelength (array): An array of wavelength values
-        flux       (array): An array of flux values
-        feature      (row): A dictionary defining feature parameters
+        wavelength (ndarray): An array of wavelength values
+        flux       (ndarray): An array of flux values
+        feature        (row): A dictionary defining feature parameters
 
     Returns:
         The starting wavelength of the feature
@@ -63,15 +70,15 @@ def get_feature_bounds(wavelength, flux, feature):
     """
 
     feat_start = get_peak_coordinates(
-        wavelength, flux, feature['lower_blue'], feature['upper_blue'])
+        wavelength, flux, feature['lower_blue'], feature['upper_blue'], 'min')
 
     feat_end = get_peak_coordinates(
-        wavelength, flux, feature['lower_red'], feature['upper_red'])
+        wavelength, flux, feature['lower_red'], feature['upper_red'], 'max')
 
     return feat_start, feat_end
 
 
-def get_continuum_func(wavelength, flux, feat_start, feat_end):
+def fit_continuum_func(wavelength, flux, feat_start, feat_end):
     """Fit the pseudo continuum for a given feature
 
     Args:
@@ -123,7 +130,7 @@ def calc_pew(wavelength, flux, feature=None, feat_start=None, feat_end=None):
     feature_flux = flux[indices]
 
     # Normalize the spectrum and calculate the EW
-    cont_func = get_continuum_func(wavelength, flux, feat_start, feat_end)
+    cont_func = fit_continuum_func(wavelength, flux, feat_start, feat_end)
     continuum_flux = cont_func(feature_wave)
     normalized_flux = feature_flux / continuum_flux
     pew = feat_end - feat_start - np.trapz(normalized_flux, feature_wave)

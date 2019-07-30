@@ -9,7 +9,7 @@ from ._calc_ew import (
     FEATURES as features,
     UnobservedFeature,
     calc_pew,
-    get_continuum_func,
+    fit_continuum_func,
     get_feature_bounds,
     tabulate_pew,
     tabulate_pew_spectrum)
