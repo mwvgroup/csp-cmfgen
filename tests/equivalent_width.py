@@ -182,10 +182,6 @@ class Tabulation(TestCase):
         expected_len = len(self.model_list) + 1
         self.assertEqual(expected_len, len(table), 'Table has incorrect len')
 
-    # Todo: Finish this test
-    def test_shift_models_to_data(self):
-        pass
-
     def test_boundary_fixing(self):
         """Test feature bounds do/don't vary per model when they
         are/aren't fixed

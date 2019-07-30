@@ -151,7 +151,7 @@ def create_pew_summary_table(models):
     model_names = [f'{m.source.name}' for m in models]
     model_versions = [f'{m.source.name}' for m in models]
     out_table = Table(
-        data=[['obs'] + model_names, [''] + model_versions],
+        data=[['OBSERVED'] + model_names, [''] + model_versions],
         names=['model', 'version'],
         dtype=['U100', 'U100'])
 
@@ -201,21 +201,6 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
     return out_table
 
 
-def shift_models_to_data(obj_id, models):
-    """Set models to observed extinction and t0 values
-
-    Args:
-        obj_id  (str): A CSP object id
-        models (list): A list of sncomso models
-    """
-
-    for model in models:
-        model.set(extebv=get_csp_ebv(obj_id))
-
-        # Todo: This time shift doesn't work
-        model.set(t0=get_csp_t0(obj_id))
-
-
 def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
     """Tabulate the pseudo equivalent widths for multiple spectra / features
 
@@ -231,31 +216,37 @@ def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
 
     pew_data = []
     total_targets = len(data_release.get_available_ids())
-    data_iter = make_pbar(
-        iterable=data_release.iter_data(),
+    id_iter = make_pbar(
+        iterable=data_release.get_available_ids(),
         verbose=verbose,
         desc='Targets',
         total=total_targets)
 
-    for data_table in data_iter:
+    for obj_id in id_iter:
+        data_table = data_release.get_data_for_id(obj_id)
+        time, wavelength, flux = parse_spectra_table(data_table)
+
         try:
-            shift_models_to_data(data_table.meta['obj_id'], models)
+            for model in models:
+                model.set(extebv=get_csp_ebv(obj_id))
+
+            # Todo: This time shift is incorrect
+            time -= get_csp_t0(obj_id)
 
         except ValueError:
+            pew_table = create_pew_summary_table(models)
+            pew_table['obj_id'] = data_table.meta['obj_id']
+            pew_data.append(pew_table)
             continue
 
-        data_arrays = parse_spectra_table(data_table)
         spectra_iter = make_pbar(
-            iterable=zip(*data_arrays),
+            iterable=zip(time, wavelength, flux),
             verbose=verbose,
             desc='Spectra',
             position=1,
-            total=len(data_arrays[0]))
+            total=len(time))
 
-        pew_table = vstack(
-            [tabulate_pew_spectrum(*s, models, fix_boundaries) for s in
-             spectra_iter])
-
+        pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra_iter])
         pew_table['obj_id'] = data_table.meta['obj_id']
         pew_data.append(pew_table)
 

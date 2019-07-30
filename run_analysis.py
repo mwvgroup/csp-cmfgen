@@ -92,7 +92,9 @@ def run_ew(cli_args):
 
     out_dir = Path(cli_args.out_dir) / 'equivalent_width'
     out_dir.mkdir(parents=True, exist_ok=True)
-    ew_results.write(out_dir / f'fixed_{cli_args.fix_boundaries}.ecsv')
+
+    ew_results.write(
+        out_dir / f'fixed_{cli_args.fix_boundaries}.ecsv', overwrite=True)
 
 
 # Parse command line input

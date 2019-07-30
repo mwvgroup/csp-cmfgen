@@ -6,6 +6,7 @@
 import numpy as np
 
 
+# Todo: Write the logic for interpolating pew
 def interpolate_bmax_pew(time, ew_vals, tmax):
     """Interpolate time dependent equivalent widths
 
