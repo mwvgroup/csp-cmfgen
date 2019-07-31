@@ -11,5 +11,6 @@ from ._calc_ew import (
     calc_pew,
     fit_continuum_func,
     get_feature_bounds,
-    tabulate_pew,
+    tabulate_peak_model_pew,
+    tabulate_pew_spectra,
     tabulate_pew_spectrum)

@@ -63,8 +63,7 @@ def run_lc_color(cli_args):
         'csp_dr3_H',
     ]
 
-    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in
-                    range(len(unique_bands) - 1)]
+    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in range(len(unique_bands) - 1)]
     out_dir = Path(cli_args.out_dir) / 'color_evolution'
     tqdm.write('Tabulating color evolution')
     for model in get_models(cli_args.models):
@@ -82,19 +81,25 @@ def run_ew(cli_args):
         cli_args (argparse.Namespace): Command line arguments
     """
 
-    start_msg = 'Tabulating equivalent widths (Fixed bounds = {})'
-    tqdm.write(start_msg.format(cli_args.fix_boundaries))
-
-    ew_results = equivalent_width.tabulate_pew(
-        data_release=dr1,
-        models=get_models(cli_args.models),
-        fix_boundaries=cli_args.fix_boundaries)
-
+    models = get_models(cli_args.models)
     out_dir = Path(cli_args.out_dir) / 'equivalent_width'
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    ew_results.write(
-        out_dir / f'fixed_{cli_args.fix_boundaries}.ecsv', overwrite=True)
+    tqdm.write('Tabulating peak model pew...')
+    peak_pew = equivalent_width.tabulate_peak_model_pew(models)
+    peak_pew.write(out_dir / f'peak_model_pew.ecsv', overwrite=True)
+
+    for fix_boundaries in (True, False):
+        start_msg = 'Tabulating equivalent widths (Fixed bounds = {})'
+        tqdm.write(start_msg.format(fix_boundaries))
+
+        ew_results = equivalent_width.tabulate_pew_spectra(
+            data_release=dr1,
+            models=get_models(cli_args.models),
+            fix_boundaries=fix_boundaries)
+
+        out_path = out_dir / f'fixed_{fix_boundaries}.ecsv'
+        ew_results.write(out_path, overwrite=True)
 
 
 # Parse command line input
@@ -112,27 +117,23 @@ if __name__ == '__main__':
     color_parser = subparsers.add_parser(
         'lc_color', help='Compare color evolution with models.')
     color_parser.set_defaults(func=run_lc_color)
+
     color_parser.add_argument(
         '-m', '--models',
         type=str,
         nargs='+',
-        default=['salt,2.4'],
+        required=True,
         help='Models to use')
 
     ew_parser = subparsers.add_parser(
         'equivalent_width', help='Calculate pseudo equivalent width values')
     ew_parser.set_defaults(func=run_ew)
-    ew_parser.add_argument(
-        '-f', '--fix_boundaries',
-        default=False,
-        action='store_true',
-        help='Fix feature bounds to measured values')
 
     ew_parser.add_argument(
         '-m', '--models',
         type=str,
         nargs='+',
-        default=['salt,2.4'],
+        required=True,
         help='Models to use')
 
     cli_args = parser.parse_args()

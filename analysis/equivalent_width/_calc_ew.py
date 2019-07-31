@@ -161,7 +161,7 @@ def create_pew_summary_table(models):
     return out_table
 
 
-def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
+def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
     """Tabulate the observed and modeled pew for multiple features
 
     Args:
@@ -208,7 +208,8 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
     return out_table
 
 
-def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
+def tabulate_pew_spectra(
+        data_release, models=(), fix_boundaries=True, verbose=True):
     """Tabulate the pseudo equivalent widths for multiple spectra / features
 
     Args:
@@ -255,3 +256,33 @@ def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
         pew_data.append(pew_table)
 
     return vstack(pew_data)
+
+
+def tabulate_peak_model_pew(models):
+    """Tabulate the pew for each feature at time of B band maximum
+
+    Args:
+        models (list): A list of sncosmo models
+
+    Returns:
+       A table of equivalent widths for each feature
+    """
+
+    out_table = create_pew_summary_table(models)
+    out_table.remove_row(0)  # Remove row for observed data
+
+    for feat_name, feature in FEATURES.items():
+        pew_data = []
+        for model in models:
+            time = model.source.peakphase('csp_dr3_B')
+            wave = model.source.interpolated_model()[1]
+            wave = wave[(wave > 3000) & (wave < 10000)]
+            model_pew_results = calc_pew(wave, model.flux(time, wave), feature)
+            pew_data.append(model_pew_results)
+
+        new_columns = np.transpose(pew_data)
+        out_table[feat_name] = new_columns[0]
+        out_table[feat_name + '_start'] = new_columns[1]
+        out_table[feat_name + '_end'] = new_columns[2]
+
+    return out_table
