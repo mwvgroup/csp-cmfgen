@@ -22,7 +22,7 @@ class UnobservedFeature(Exception):
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
-def get_peak_coordinates(
+def get_peak_wavelength(
         wavelength, flux, lower_bound, upper_bound, behavior='min'):
     """Return wavelength of the maximum flux within given wavelength bounds
 
@@ -51,9 +51,9 @@ def get_peak_coordinates(
     feature_flux = flux[feature_indices]
     feature_wavelength = wavelength[feature_indices]
 
-    peak_index = np.argmax(feature_flux)
+    peak_indices = np.argwhere(feature_flux == np.max(feature_flux))
     behavior_func = {'min': np.min, 'max': np.max}[behavior]
-    return behavior_func(feature_wavelength[peak_index])
+    return behavior_func(feature_wavelength[peak_indices])
 
 
 def get_feature_bounds(wavelength, flux, feature):
@@ -69,10 +69,10 @@ def get_feature_bounds(wavelength, flux, feature):
         The ending wavelength of the feature
     """
 
-    feat_start = get_peak_coordinates(
+    feat_start = get_peak_wavelength(
         wavelength, flux, feature['lower_blue'], feature['upper_blue'], 'min')
 
-    feat_end = get_peak_coordinates(
+    feat_end = get_peak_wavelength(
         wavelength, flux, feature['lower_red'], feature['upper_red'], 'max')
 
     return feat_start, feat_end

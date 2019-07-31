@@ -35,7 +35,7 @@ class FeatureIdentification(TestCase):
         """Test the correct peak wavelength is found for a single flux spike"""
 
         expected_peak = self.peak_wavelengths[0]
-        recovered_peak = equiv_width._calc_ew.get_peak_coordinates(
+        recovered_peak = equiv_width._calc_ew.get_peak_wavelength(
             self.wavelength,
             self.flux,
             expected_peak - 10,
@@ -49,7 +49,7 @@ class FeatureIdentification(TestCase):
 
         max_wavelength = max(self.wavelength)
         with self.assertRaises(equiv_width.UnobservedFeature):
-            equiv_width._calc_ew.get_peak_coordinates(
+            equiv_width._calc_ew.get_peak_wavelength(
                 self.wavelength,
                 self.flux,
                 max_wavelength + 10,
@@ -61,7 +61,7 @@ class FeatureIdentification(TestCase):
 
         lower_peak_wavelength = min(self.peak_wavelengths)
         upper_peak_wavelength = max(self.peak_wavelengths)
-        recovered_lower_peak = equiv_width._calc_ew.get_peak_coordinates(
+        recovered_lower_peak = equiv_width._calc_ew.get_peak_wavelength(
             self.wavelength,
             self.flux,
             lower_peak_wavelength - 10,
@@ -69,7 +69,7 @@ class FeatureIdentification(TestCase):
             'min'
         )
 
-        recovered_upper_peak = equiv_width._calc_ew.get_peak_coordinates(
+        recovered_upper_peak = equiv_width._calc_ew.get_peak_wavelength(
             self.wavelength,
             self.flux,
             lower_peak_wavelength - 10,
@@ -135,9 +135,8 @@ class EWCalculation(TestCase):
         fit_cont_params = np.polyfit(
             self.feat_wave, cont_func(self.feat_wave), deg=1)
 
-        self.assertAlmostEqual(
-            self.cont_slope, fit_cont_params[0],
-            places=10, msg='Wrong continuum slope.')
+        self.assertAlmostEqual(self.cont_slope, fit_cont_params[0],
+                               places=10, msg='Wrong continuum slope.')
 
         self.assertAlmostEqual(self.cont_intercept, fit_cont_params[1],
                                places=10, msg='Wrong continuum y-intercept.')
