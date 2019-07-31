@@ -136,7 +136,7 @@ def calc_pew(wavelength, flux, feature=None, feat_start=None, feat_end=None):
     cont_func = fit_continuum_func(wavelength, flux, feat_start, feat_end)
     continuum_flux = cont_func(feature_wave)
     normalized_flux = feature_flux / continuum_flux
-    pew = np.trapz(normalized_flux, feature_wave)
+    pew = np.trapz(1 - normalized_flux, feature_wave)
     return pew, feat_start, feat_end
 
 

@@ -18,7 +18,8 @@ dr3.download_module_data()
 dr3.register_filters()
 
 
-def create_test_spectrum(feat_start, feat_end, slope, cont_intercept, feat_intercept):
+def create_test_spectrum(feat_start, feat_end, slope, cont_intercept,
+                         feat_intercept):
     """Create a dummy spectrum with an absorption feature and linear continuum
 
     The y-intercept of the feature is fixed at 1. The feature starts at 0 and
@@ -32,24 +33,20 @@ def create_test_spectrum(feat_start, feat_end, slope, cont_intercept, feat_inter
         feat_intercept (float): y-intercept of the feature flux
 
     Returns:
-        An array representing wavelength values
+        An array representing wavelength values at a resolution of .5
         An array representing flux values
-        The equivalent width of the feature
     """
 
     # Define the continuum
-    wave = np.arange(feat_start - 10, feat_end + 10, 1)
+    wave = np.arange(feat_start - 10, feat_end + 10, .25)
     flux = slope * wave + cont_intercept
 
     # Add an absorption feature from 0 to feat_width
-    feature_indices = (
-            (0 <= wave) & (wave <= feat_end)
-    )
+    feature_indices = ((0 < wave) & (wave < feat_end))
 
     flux[feature_indices] = slope * wave[feature_indices] + feat_intercept
-    ew = (feat_end - feat_start) * abs(cont_intercept - feat_intercept)
 
-    return wave, flux, ew
+    return wave, flux
 
 
 class FeatureIdentification(TestCase):
@@ -147,21 +144,21 @@ class EWCalculation(TestCase):
         # Create a fake test spectrum
         feat_start = 0
         feat_end = 15
-        slope=2
+        slope = 2
         intercept = 3
-        test_wave, test_flux, ew = create_test_spectrum(
+        test_wave, test_flux = create_test_spectrum(
             feat_start=feat_start,
             feat_end=feat_end,
             slope=slope,
             cont_intercept=intercept,
-            feat_intercept=1) # The feature intercept doesn't matter here
+            feat_intercept=1)  # The feature intercept doesn't matter here
 
         # Fit the continuum
         cont_func = equiv_width.fit_continuum_func(
             test_wave, test_flux, feat_start, feat_end)
 
+        # Check we recover the input continuum slope and intercept
         fit_cont_params = np.polyfit(test_wave, cont_func(test_wave), deg=1)
-
         self.assertAlmostEqual(
             slope, fit_cont_params[0], places=10,
             msg='Wrong continuum slope.')
@@ -173,21 +170,28 @@ class EWCalculation(TestCase):
     def test_calc_ew(self):
         """Test the measured and simulated pew agree"""
 
-        model_start = 0
-        model_end = 15
-        test_wave, test_flux, ew = create_test_spectrum(
-            feat_start=model_start,
-            feat_end=model_end,
-            slope=0,
-            cont_intercept=2,
-            feat_intercept=1)
+        feat_start = 0
+        feat_end = 15
+        cont_intercept = 2
+        feat_intercept = 1
+        test_wave, test_flux = create_test_spectrum(
+            feat_start=feat_start,
+            feat_end=feat_end,
+            cont_intercept=cont_intercept,
+            feat_intercept=feat_intercept,
+            slope=0)
 
-        pew, feat_start, feat_end = equiv_width.calc_pew(
-            test_wave, test_flux, feat_start=model_start, feat_end=model_end)
+        # The returned equivalent width should be less then the actual
+        # equivalent width by half of the wavelength resolution
+        # of the fake spectrum.
+        actual_ew = (feat_end - feat_start) * (feat_intercept / cont_intercept)
+        expected_ew = actual_ew - ((test_wave[1] - test_wave[0]) / 2)
+        returned_ew, returned_start, returned_end = equiv_width.calc_pew(
+            test_wave, test_flux, feat_start=feat_start, feat_end=feat_end)
 
-        self.assertEqual(model_start, feat_start, 'Wrong feature start')
-        self.assertEqual(model_end, feat_end, 'Wrong feature end')
-        self.assertEqual(ew, pew, 'Wrong feature width')
+        self.assertEqual(feat_start, returned_start, 'Wrong feature start')
+        self.assertEqual(feat_end, returned_end, 'Wrong feature end')
+        self.assertEqual(expected_ew, returned_ew, 'Wrong feature width')
 
 
 class Tabulation(TestCase):
