@@ -7,12 +7,14 @@ from unittest import TestCase
 
 import numpy as np
 import sncosmo
-from sndata.csp import dr1
+from sndata.csp import dr1, dr3
 
 from analysis import equivalent_width as equiv_width
 from analysis import models
 from analysis import utils
 
+models.register_sources()
+dr3.register_filters()
 
 class FeatureIdentification(TestCase):
     """Test the identification of feature boundaries"""
@@ -118,7 +120,7 @@ class EWCalculation(TestCase):
 
         # Add an absorption feature from 0 to cls.feat_width
         feature_indices = (
-                (0 <= cls.feat_wave) & (cls.feat_wave <= cls.feat_width)
+                (0 < cls.feat_wave) & (cls.feat_wave < cls.feat_width)
         )
 
         cls.feat_flux[feature_indices] = 2 * cls.feat_wave[feature_indices]
@@ -129,9 +131,12 @@ class EWCalculation(TestCase):
         cont_func = equiv_width.fit_continuum_func(
             self.feat_wave, self.feat_flux, 0, self.feat_width)
 
-        fit_cont_params = np.polyfit(self.feat_wave, cont_func(self.feat_wave))
-        self.assertEqual(self.cont_slope, fit_cont_params[0],
-                         'Wrong continuum slope.')
+        fit_cont_params = np.polyfit(
+            self.feat_wave, cont_func(self.feat_wave), deg=1)
+
+        self.assertAlmostEqual(
+            self.cont_slope, fit_cont_params[0],
+            places=10, msg='Wrong continuum slope.')
 
         self.assertEqual(self.cont_intercept, fit_cont_params[1],
                          'Wrong continuum y-intercept.')
@@ -154,7 +159,6 @@ class Tabulation(TestCase):
     @classmethod
     def setUpClass(cls):
         # Load CMFGEN models
-        models.register_sources()
         m102 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.02))
         m104 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.04))
         m14 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.4))
