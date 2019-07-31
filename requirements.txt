@@ -1,7 +1,6 @@
 astropy
 bokeh
 george
-kernel
 matplotlib
 numpy==1.16.2
 requests
