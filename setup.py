@@ -9,5 +9,5 @@ setup(name='nir_analysis',
       python_requires='>=3.7',
       setup_requires=['pytest-runner'],
       tests_require=['pytest'],
-      package_data={'': ['features.yml']},
+      package_data={'': ['*.yml', 'NPZ_models/*.npz.zip']},
       include_pacakge_data=True)
