@@ -14,6 +14,7 @@ from analysis import models
 from analysis import utils
 
 models.register_sources()
+dr3.download_module_data()
 dr3.register_filters()
 
 
