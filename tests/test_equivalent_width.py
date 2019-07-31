@@ -16,6 +16,7 @@ from analysis import utils
 models.register_sources()
 dr3.register_filters()
 
+
 class FeatureIdentification(TestCase):
     """Test the identification of feature boundaries"""
 
@@ -138,8 +139,8 @@ class EWCalculation(TestCase):
             self.cont_slope, fit_cont_params[0],
             places=10, msg='Wrong continuum slope.')
 
-        self.assertEqual(self.cont_intercept, fit_cont_params[1],
-                         'Wrong continuum y-intercept.')
+        self.assertAlmostEqual(self.cont_intercept, fit_cont_params[1],
+                               places=10, msg='Wrong continuum y-intercept.')
 
     def test_calc_ew(self):
         """Test the measured and simulated pew agree"""
