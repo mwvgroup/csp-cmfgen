@@ -149,7 +149,7 @@ def create_pew_summary_table(models):
 
     # First row represents observed data
     model_names = [f'{m.source.name}' for m in models]
-    model_versions = [f'{m.source.name}' for m in models]
+    model_versions = [f'{m.source.version}' for m in models]
     out_table = Table(
         data=[['OBSERVED'] + model_names, [''] + model_versions],
         names=['model', 'version'],
@@ -190,8 +190,10 @@ def tabulate_pew_spectrum(time, wave, flux, models, fix_boundaries):
 
         # Calculate pew for models
         for model in models:
+            # Shift time to beginning of explosion
+            t0 = model.source.peakphase('csp_dr3_B')
             model_pew_results = calc_pew(
-                wave, model.flux(time, wave), feature, feat_start, feat_end)
+                wave, model.flux(time - t0, wave), feature, feat_start, feat_end)
 
             pew_data.append(model_pew_results)
 
@@ -232,7 +234,7 @@ def tabulate_pew(data_release, models, fix_boundaries, verbose=True):
             for model in models:
                 model.set(extebv=get_csp_ebv(obj_id))
 
-            # Todo: I'm not convinced this is the right thing to do
+            # Shift observed time to B-band peak
             time -= get_csp_t0(obj_id)
 
         except ValueError:
