@@ -91,6 +91,9 @@ def fit_continuum_func(wavelength, flux, feat_start, feat_end):
         A linear function fit to the flux values bounding a feature
     """
 
+    if not ((feat_start in wavelength) and (feat_end in wavelength)):
+        raise ValueError('Feature bounds not in wavelength array.')
+
     blue_flux = flux[wavelength == feat_start]
     red_flux = flux[wavelength == feat_end]
     m = (red_flux - blue_flux) / (feat_end - feat_start)
@@ -133,7 +136,7 @@ def calc_pew(wavelength, flux, feature=None, feat_start=None, feat_end=None):
     cont_func = fit_continuum_func(wavelength, flux, feat_start, feat_end)
     continuum_flux = cont_func(feature_wave)
     normalized_flux = feature_flux / continuum_flux
-    pew = feat_end - feat_start - np.trapz(normalized_flux, feature_wave)
+    pew = np.trapz(normalized_flux, feature_wave)
     return pew, feat_start, feat_end
 
 
