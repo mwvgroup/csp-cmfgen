@@ -2,12 +2,11 @@ astropy
 bokeh
 george
 matplotlib
-numpy==1.16.2
+numpy>=1.16.4
 requests
 scipy
 sncosmo
 tqdm
 iminuit
-sndata
-
-kernel
+sndata>=0.5.0
+pyyaml

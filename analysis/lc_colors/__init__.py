@@ -5,8 +5,6 @@
 the fitted colors with colors predicted by CMFGEN."""
 
 from ._chi_squared import get_color_times
-from ._chi_squared import get_csp_ebv
-from ._chi_squared import get_csp_t0
 from ._chi_squared import tabulate_residuals
 from ._lc_regression import fit_gaussian_process
 from ._lc_regression import predict_band_flux
