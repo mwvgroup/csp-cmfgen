@@ -80,7 +80,7 @@ class GenericSource(sncosmo.Source):
     def _flux(self, phase, wave):
         # Returns the flux corresponding to the given phase and wavelength
 
-        amplitude = self._parameters
+        amplitude = self._parameters[0]
         return amplitude * self.spline(phase, wave)
 
 
