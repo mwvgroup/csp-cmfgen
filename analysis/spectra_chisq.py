@@ -84,7 +84,7 @@ def create_empty_output_table(band_names):
         An astropy table
     """
 
-    names, dtype = ['obj_id'], ['U100']
+    names, dtype = ['obj_id', 'source', 'version'], ['U100', 'U100', 'U100']
     names.extend(band_names)
     dtype.extend((float for _ in band_names))
 
@@ -107,33 +107,39 @@ def tabulate_chi_squared(data_release, models, bands, out_path=None):
 
     out_table = create_empty_output_table(bands)
     data_iter = data_release.iter_data(
-        verbose={'desc': 'Targets'}, filter_func=utils.has_csp_data)
+        verbose={'desc': 'Targets'}, filter_func=utils.filter_has_csp_data)
 
     for data_table in data_iter:
         obj_id = data_table.meta['obj_id']
         ebv = utils.get_csp_ebv(obj_id)
         t0 = utils.get_csp_t0(obj_id)
-        obs_time, wave, flux, flux_err = utils.parse_spectra_table(data_table)
+        obs_time, wave, flux = utils.parse_spectra_table(data_table)
+        flux_err = .1 * flux  # Todo: get actual CSP DR1 errors
         phase = obs_time - t0
 
         for model in models:
-            source = model.source.name
-            version = model.source.version
-            new_row = [obj_id, source, version]
-
             model = deepcopy(model)
-            model.set(ebv=ebv)
+            model.set(extebv=ebv)
 
-            for band in bands:
-                band_start, band_end = band_limits(band, .1)
+            for p, w, f, fe in zip(phase, wave, flux, flux_err):
+                new_row = [obj_id, model.source.name, model.source.version]
+                mask = [False, False, False]
 
-                for p, w, f, fe, mf in zip(phase, wave, flux, flux_err):
-                    model_flux = model.flux(p, wave)
-                    chisq = band_chisq(w, f, fe, model_flux, band_start, band_end)
-                    new_row.append(chisq)
+                for band in bands:
+                    band_start, band_end = band_limits(band, .1)
+                    model_flux = model.flux(p, w)
 
-            out_table.add_row(new_row)
-            if out_table:
-                out_table.write(out_path, overwrite=True)
+                    try:
+                        chisq = band_chisq(w, f, fe, model_flux, band_start, band_end)
+                        new_row.append(chisq)
+                        mask.append(False)
+
+                    except ValueError:
+                        new_row.append(np.NAN)
+                        mask.append(True)
+
+                out_table.add_row(new_row, mask=mask)
+                if out_table:
+                    out_table.write(out_path, overwrite=True)
 
     return out_table
