@@ -9,6 +9,55 @@ from sndata.csp import dr1, dr3
 from tqdm import tqdm
 
 
+class NoCSPData(Exception):
+    pass
+
+
+def filter_has_csp_data(data_table):
+    """Return whether an object ID has an available t0 and E(B - V) value
+
+    Args:
+        data_table (Table): A table from sndata
+
+    Returns:
+        A boolean
+    """
+
+    obj_id = data_table.meta['obj_id']
+    try:
+        get_csp_t0(obj_id)
+        get_csp_ebv(obj_id)
+
+    except NoCSPData:
+        return False
+
+    else:
+        return True
+
+
+@np.vectorize
+def convert_to_jd(time):
+    """Convert MJD and Snoopy dates into JD
+
+    Args:
+        time (float): Time stamp in JD, MJD, or SNPY format
+
+    Returns:
+        The time value in JD format
+    """
+
+    # Snoopy time format
+    if time < 53000:
+        return time + 53000 + 2400000.5
+
+    # Snoopy time format
+    elif 53000 < time < 2400000.5:
+        return time + 2400000.5
+
+    else:
+        return time
+
+
 def get_csp_t0(obj_id):
     """Get the t0 value published by CSP DR3 for a given object
 
@@ -19,9 +68,11 @@ def get_csp_t0(obj_id):
         The published MJD of maximum minus 53000
     """
 
+    dr3.download_module_data()
     params = dr3.load_table(3)
+    params = params[~params['T(Bmax)'].mask]
     if obj_id not in params['SN']:
-        raise ValueError(f'No published t0 for {obj_id}')
+        raise NoCSPData(f'No published t0 for {obj_id}')
 
     return params[params['SN'] == obj_id]['T(Bmax)'][0]
 
@@ -36,9 +87,10 @@ def get_csp_ebv(obj_id):
         The published E(B - V) value
     """
 
+    dr1.download_module_data()
     extinction_table = dr1.load_table(1)
     if obj_id not in extinction_table['SN']:
-        raise ValueError(f'No published E(B-V) for {obj_id}')
+        raise NoCSPData(f'No published E(B-V) for {obj_id}')
 
     data_for_target = extinction_table[extinction_table['SN'] == obj_id]
     return data_for_target['E(B-V)'][0]
@@ -99,5 +151,5 @@ def parse_spectra_table(data):
         wavelength.append(data_for_date['wavelength'])
         flux.append(data_for_date['flux'])
 
-    obs_dates = np.array(obs_dates) - 2400000.5  # Convert from JD to MJD
+    obs_dates = np.array(obs_dates)
     return obs_dates, np.array(wavelength), np.array(flux)
