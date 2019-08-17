@@ -1,7 +1,7 @@
 Installation
 ============
 
-The analysis package for this project is **not** available via a package
+The analysis pipeline for this project is **not** available via a package
 manager. Source code can be downloaded to your local machine from `GitHub`_
 or by using ``git``:
 
@@ -10,7 +10,7 @@ or by using ``git``:
    git clone https://github.com/mwvgroup/nir-comparison/
 
 Dependencies for the analysis package in addition to the package itself
-can then be installed  by running
+can then be installed by running
 
 .. code:: bash
 

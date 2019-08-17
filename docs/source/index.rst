@@ -7,7 +7,9 @@ Photometric Constraints on SNe Models with LSST
 ===============================================
 
 This documentation outlines the analysis package used for the NIR Comparison
-project.
+project. The project goal is compare SNe models against data from CSP to
+understand how well we can constrain spectroscopic models with photometric
+data, particularly with upcoming surveys like LSST.
 
 .. toctree::
    :hidden:
