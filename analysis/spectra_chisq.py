@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-"""Calculate the chi-squared values for modeled spectra"""
+"""The ``spectra_chisq`` module calculates the chi-squared values for modeled
+spectra.
+
+**This module is incomplete, and is intended in it's current form as a
+template / outline for future work.**
+"""
 
 from copy import deepcopy
 
@@ -10,6 +15,13 @@ import sncosmo
 from astropy.table import Table
 
 from . import utils
+
+__all__ = [
+    'color_warp_spectrum',
+    'band_limits',
+    'band_chisq',
+    'tabulate_chi_squared'
+]
 
 
 # Todo: Write the color_warp_spectrum function
@@ -130,7 +142,8 @@ def tabulate_chi_squared(data_release, models, bands, out_path=None):
                     model_flux = model.flux(p, w)
 
                     try:
-                        chisq = band_chisq(w, f, fe, model_flux, band_start, band_end)
+                        chisq = band_chisq(w, f, fe, model_flux, band_start,
+                                           band_end)
                         new_row.append(chisq)
                         mask.append(False)
 
