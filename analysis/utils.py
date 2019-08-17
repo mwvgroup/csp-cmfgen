@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-"""Utility functions used across the analysis package."""
+"""General utility functions used across the analysis package."""
 
 import numpy as np
 import sncosmo
@@ -14,7 +14,10 @@ class NoCSPData(Exception):
 
 
 def filter_has_csp_data(data_table):
-    """Return whether an object ID has an available t0 and E(B - V) value
+    """A filter function for an SNData table iterator
+
+    Returns whether the object ID associated with a data table has an
+    available t0 and E(B - V) value.
 
     Args:
         data_table (Table): A table from sndata
@@ -40,7 +43,7 @@ def convert_to_jd(time):
     """Convert MJD and Snoopy dates into JD
 
     Args:
-        time (float): Time stamp in JD, MJD, or SNPY format
+        time (float): Time stamp in JD, MJD, or Snoopy format
 
     Returns:
         The time value in JD format
@@ -118,7 +121,7 @@ def make_pbar(iterable, verbose, **kwargs):
 def get_effective_wavelength(band_name):
     """Get the effective wavelength for a given band
 
-    Band name must be registered with SNCosmo
+    Band name must be registered with SNCosmo.
 
     Args:
         band_name (str): The name of a registered bandpass
