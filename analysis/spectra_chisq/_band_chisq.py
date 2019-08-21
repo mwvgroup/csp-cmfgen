@@ -41,7 +41,7 @@ def band_limits(band_name, trans_limit):
     return np.min(transmission_limits), np.max(transmission_limits)
 
 
-def band_chisq(wave, flux, flux_err, model_flux, band_start, band_end):
+def chisq(wave, flux, flux_err, model_flux, start, end):
     """Calculate the chi-squared for a spectrum within a wavelength range
 
     Args:
@@ -49,17 +49,17 @@ def band_chisq(wave, flux, flux_err, model_flux, band_start, band_end):
         flux       (ndarray): An array of flux values
         flux_err   (ndarray): An array of error values for ``flux``
         model_flux (ndarray): An array of model flux values
-        band_start   (float): The starting wavelength for the band
-        band_end     (float): The ending wavelength for the band
+        start        (float): The starting wavelength for the band
+        end          (float): The ending wavelength for the band
 
     Returns:
         A dictionary with the chi_squared value in each band
     """
 
-    if band_start < np.min(wave) or np.max(wave) < band_end:
+    if start < np.min(wave) or np.max(wave) < end:
         raise UnobservedFeature
 
-    indices = np.where((band_start < wave) & (wave < band_end))[0]
+    indices = np.where((start < wave) & (wave < end))[0]
     chisq_arr = (flux[indices] - model_flux[indices]) / flux_err[indices]
     return np.sum(chisq_arr ** 2)
 
@@ -83,8 +83,8 @@ def create_empty_output_table(band_names):
     return out_table
 
 
-def tabulate_chi_squared(data_release, models, bands, err_estimate=.03,
-                         trans_limit=.1, out_path=None):
+def tabulate_chisq(data_release, models, bands, err_estimate=.03,
+                   trans_limit=.1, out_path=None):
     """Tabulate band specific chi-squared values for spectroscopic observations
 
     The chi-squared is calculated over the wavelength range where the
@@ -111,6 +111,7 @@ def tabulate_chi_squared(data_release, models, bands, err_estimate=.03,
 
     for data_table in data_iter:
         obj_id = data_table.meta['obj_id']
+        z = data_table.meta['redshift']
         ebv = utils.get_csp_ebv(obj_id)
         t0 = utils.get_csp_t0(obj_id)
 
@@ -119,7 +120,7 @@ def tabulate_chi_squared(data_release, models, bands, err_estimate=.03,
 
         for model in tqdm(models, desc='Models', position=1):
             model = deepcopy(model)
-            model.set(extebv=ebv)
+            model.set(extebv=ebv, z=z)
 
             for t, w, f, fe in zip(obs_time, wave, flux, flux_err):
                 new_row = [obj_id, model.source.name, model.source.version, t]
@@ -130,8 +131,8 @@ def tabulate_chi_squared(data_release, models, bands, err_estimate=.03,
                     band_start, band_end = band_limits(band, trans_limit)
 
                     try:
-                        chisq = band_chisq(w, f, fe, model_flux, band_start,
-                                           band_end)
+                        chisq = chisq(w, f, fe, model_flux, band_start,
+                                      band_end)
                         new_row.append(chisq)
                         mask.append(False)
 

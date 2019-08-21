@@ -7,10 +7,10 @@ spectra.
 **This module is incomplete. It does not consider color warping.**
 """
 
-from ._band_chisq import band_chisq, band_limits, tabulate_chi_squared
+from ._band_chisq import chisq, band_limits, tabulate_chisq
 
 __all__ = [
     'band_limits',
-    'band_chisq',
-    'tabulate_chi_squared'
+    'chisq',
+    'tabulate_chisq'
 ]
