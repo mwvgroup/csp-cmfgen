@@ -14,31 +14,8 @@ import numpy as np
 import sncosmo
 from astropy.table import Table
 
-from . import utils
-
-__all__ = [
-    'color_warp_spectrum',
-    'band_limits',
-    'band_chisq',
-    'tabulate_chi_squared'
-]
-
-
-# Todo: Write the color_warp_spectrum function
-def color_warp_spectrum(wave, flux, flux_err, **kwargs):
-    """Color warp a spectrum
-
-    Args:
-        wave     (ndarray): An array of wavelengths
-        flux     (ndarray): An array of flux values
-        flux_err (ndarray): An array of error values for ``flux``
-
-    Returns:
-        An array of color warped flux values
-        An array of error values for the color warped fluxes
-    """
-
-    return flux, flux_err
+from .. import utils
+from ..exceptions import UnobservedFeature
 
 
 def band_limits(band_name, trans_limit):
@@ -79,7 +56,7 @@ def band_chisq(wave, flux, flux_err, model_flux, band_start, band_end):
     """
 
     if band_start < np.min(wave) or np.max(wave) < band_end:
-        raise ValueError
+        raise UnobservedFeature
 
     indices = np.where((band_start < wave) & (wave < band_end))[0]
     chisq_arr = (flux[indices] - model_flux[indices]) / flux_err[indices]
@@ -104,13 +81,23 @@ def create_empty_output_table(band_names):
     return out_table
 
 
-def tabulate_chi_squared(data_release, models, bands, out_path=None):
-    """Tabulate chi-squared values for spectroscopic observations
+def tabulate_chi_squared(data_release, models, bands, err_estimate=.3,
+                         trans_limit=.1, out_path=None):
+    """Tabulate band specific chi-squared values for spectroscopic observations
+
+    The chi-squared is calculated over the wavelength range where the
+    transmission is above ``transmission_limit``. Specifying ``bands = 'all'``
+    will calculate the chisquared for the entire spectrum.
+
+    Assumes a 30% error in observed spectra and a 10% transmission limit by
+    default.
 
     Args:
         data_release (module): An sndata data release
         models         (list): List of sncosmo models
         bands          (list): A list of band names
+        err_estimate  (float): Error estimate for spectra as fraction of flux
+        trans_limit   (float): Transmission limit for defining band wave range
         out_path        (str): Optionally write results to file
 
     Returns:
@@ -125,8 +112,9 @@ def tabulate_chi_squared(data_release, models, bands, out_path=None):
         obj_id = data_table.meta['obj_id']
         ebv = utils.get_csp_ebv(obj_id)
         t0 = utils.get_csp_t0(obj_id)
+
         obs_time, wave, flux = utils.parse_spectra_table(data_table)
-        flux_err = .1 * flux  # Todo: get actual CSP DR1 errors
+        flux_err = err_estimate * flux
         phase = obs_time - t0
 
         for model in models:
@@ -136,18 +124,17 @@ def tabulate_chi_squared(data_release, models, bands, out_path=None):
             for p, w, f, fe in zip(phase, wave, flux, flux_err):
                 new_row = [obj_id, model.source.name, model.source.version]
                 mask = [False, False, False]
+                model_flux = model.flux(p, w)
 
                 for band in bands:
-                    band_start, band_end = band_limits(band, .1)
-                    model_flux = model.flux(p, w)
+                    band_start, band_end = band_limits(band, trans_limit)
 
                     try:
-                        chisq = band_chisq(w, f, fe, model_flux, band_start,
-                                           band_end)
+                        chisq = band_chisq(w, f, fe, model_flux, band_start, band_end)
                         new_row.append(chisq)
                         mask.append(False)
 
-                    except ValueError:
+                    except UnobservedFeature:
                         new_row.append(np.NAN)
                         mask.append(True)
 
