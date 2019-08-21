@@ -168,14 +168,28 @@ if __name__ == '__main__':
     spec_chisq_parser.add_argument(
         '-e', '--err_estimate',
         type=float,
-        default=.03,
-        help='Error estimate as a fraction of the flux (Default: .3)')
+        default=None,
+        help='Error estimate as a fraction of the flux')
+
+    spec_chisq_parser.add_argument(
+        '-f', '--features',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Features to tabulate chi-squared for.')
+
+    spec_chisq_parser.add_argument(
+        '-b', '--bands',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Bands to tabulate chi-squared for.')
 
     spec_chisq_parser.add_argument(
         '-t', '--trans_limit',
         type=float,
-        default=.1,
-        help='Transmission cutoff for each band (Default: .1)')
+        default=None,
+        help='Transmission cutoff applied to each band')
 
     cli_args = parser.parse_args()
     cli_args.func(cli_args)

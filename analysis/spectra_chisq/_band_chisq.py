@@ -5,7 +5,7 @@
 spectra.
 
 **This module is incomplete, and is intended in it's current form as a
-template / outline for future work.**
+template / outline for future work. It is missing color warping**
 """
 
 from copy import deepcopy
@@ -171,7 +171,7 @@ def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
         err_estimate  (float): Error estimate for spectra as fraction of flux
         bands          (list): A list of band names
         trans_limit   (float): Transmission limit for defining band wave range
-        features       (dict):
+        features       (dict): Dictionary of feature names and meta data
         out_path        (str): Optionally write results to file
 
     Returns:
