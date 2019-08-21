@@ -11,9 +11,7 @@ import sncosmo
 from sndata.csp import dr1, dr3
 from tqdm import tqdm
 
-from analysis import equivalent_width
-from analysis import lc_colors
-from analysis import models
+from analysis import equivalent_width, lc_colors, models, spectra_chisq
 
 warnings.filterwarnings('ignore')
 models.register_sources()
@@ -102,6 +100,26 @@ def run_ew(cli_args):
         ew_results.write(out_path, overwrite=True)
 
 
+def run_spec_chisq(cli_args):
+    """Calculate chi-squared for spectra
+
+    Args:
+        cli_args (argparse.Namespace): Command line arguments
+    """
+
+    out_dir = Path(cli_args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    spectra_chisq.tabulate_chi_squared(
+        data_release=dr1,
+        bands=dr3.band_names,
+        models=get_models(cli_args.models),
+        err_estimate=cli_args.err_estimate,
+        trans_limit=cli_args.trans_limit,
+        out_path=out_dir / 'spec_chisq.ecsv'
+    )
+
+
 # Parse command line input
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -134,6 +152,29 @@ if __name__ == '__main__':
         type=str,
         nargs='+',
         required=True,
+        help='Models to use')
+
+    spec_chisq_parser = subparsers.add_parser('spec_chisq',
+        help='Calculate chi-squared for spectra')
+    spec_chisq_parser.set_defaults(func=run_ew)
+
+    spec_chisq_parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
+
+    spec_chisq_parser.add_argument(
+        '-e', '--err_estimate',
+        type=float,
+        default=None,
+        help='Models to use')
+
+    spec_chisq_parser.add_argument(
+        '-t', '--trans_limit',
+        type=float,
+        default=None,
         help='Models to use')
 
     cli_args = parser.parse_args()

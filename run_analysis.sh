@@ -2,3 +2,5 @@
 
 python run_analysis.py -o results equivalent_width -m CMFGEN,1.04 CMFGEN,1.02 CMFGEN,1.4 CMFGEN,1.7;
 python run_analysis.py -o results lc_color         -m CMFGEN,1.04 CMFGEN,1.02 CMFGEN,1.4 CMFGEN,1.7;
+python run_analysis.py -o results spec_chisq       -m CMFGEN,1.04 CMFGEN,1.02 CMFGEN,1.4 CMFGEN,1.7;
+
