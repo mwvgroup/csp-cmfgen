@@ -168,14 +168,14 @@ if __name__ == '__main__':
     spec_chisq_parser.add_argument(
         '-e', '--err_estimate',
         type=float,
-        default=None,
-        help='Models to use')
+        default=.03,
+        help='Error estimate as a fraction of the flux (Default: .3)')
 
     spec_chisq_parser.add_argument(
         '-t', '--trans_limit',
         type=float,
-        default=None,
-        help='Models to use')
+        default=.1,
+        help='Transmission cutoff for each band (Default: .1)')
 
     cli_args = parser.parse_args()
     cli_args.func(cli_args)

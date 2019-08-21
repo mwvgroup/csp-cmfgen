@@ -13,6 +13,7 @@ from copy import deepcopy
 import numpy as np
 import sncosmo
 from astropy.table import Table
+from tqdm import tqdm
 
 from .. import utils
 from ..exceptions import UnobservedFeature
@@ -60,7 +61,7 @@ def band_chisq(wave, flux, flux_err, model_flux, band_start, band_end):
 
     indices = np.where((band_start < wave) & (wave < band_end))[0]
     chisq_arr = (flux[indices] - model_flux[indices]) / flux_err[indices]
-    return np.sum(chisq_arr)
+    return np.sum(chisq_arr ** 2)
 
 
 def create_empty_output_table(band_names):
@@ -73,7 +74,8 @@ def create_empty_output_table(band_names):
         An astropy table
     """
 
-    names, dtype = ['obj_id', 'source', 'version'], ['U100', 'U100', 'U100']
+    names = ['obj_id', 'source', 'version', 'time']
+    dtype = ['U100', 'U100', 'U100', float]
     names.extend(band_names)
     dtype.extend((float for _ in band_names))
 
@@ -81,7 +83,7 @@ def create_empty_output_table(band_names):
     return out_table
 
 
-def tabulate_chi_squared(data_release, models, bands, err_estimate=.3,
+def tabulate_chi_squared(data_release, models, bands, err_estimate=.03,
                          trans_limit=.1, out_path=None):
     """Tabulate band specific chi-squared values for spectroscopic observations
 
@@ -89,8 +91,7 @@ def tabulate_chi_squared(data_release, models, bands, err_estimate=.3,
     transmission is above ``transmission_limit``. Specifying ``bands = 'all'``
     will calculate the chisquared for the entire spectrum.
 
-    Assumes a 30% error in observed spectra and a 10% transmission limit by
-    default.
+    Defaults to a 3% error in observed spectra and a 10% transmission limit.
 
     Args:
         data_release (module): An sndata data release
@@ -115,22 +116,22 @@ def tabulate_chi_squared(data_release, models, bands, err_estimate=.3,
 
         obs_time, wave, flux = utils.parse_spectra_table(data_table)
         flux_err = err_estimate * flux
-        phase = obs_time - t0
 
-        for model in models:
+        for model in tqdm(models, desc='Models', position=1):
             model = deepcopy(model)
             model.set(extebv=ebv)
 
-            for p, w, f, fe in zip(phase, wave, flux, flux_err):
-                new_row = [obj_id, model.source.name, model.source.version]
-                mask = [False, False, False]
-                model_flux = model.flux(p, w)
+            for t, w, f, fe in zip(obs_time, wave, flux, flux_err):
+                new_row = [obj_id, model.source.name, model.source.version, t]
+                mask = [False, False, False, False]
+                model_flux = model.flux(t - t0, w)
 
                 for band in bands:
                     band_start, band_end = band_limits(band, trans_limit)
 
                     try:
-                        chisq = band_chisq(w, f, fe, model_flux, band_start, band_end)
+                        chisq = band_chisq(w, f, fe, model_flux, band_start,
+                                           band_end)
                         new_row.append(chisq)
                         mask.append(False)
 
