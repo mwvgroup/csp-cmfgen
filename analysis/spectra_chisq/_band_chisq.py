@@ -16,6 +16,7 @@ from astropy.table import Table
 from tqdm import tqdm
 
 from .. import utils
+from ..equivalent_width import get_feature_bounds
 from ..exceptions import UnobservedFeature
 
 
@@ -41,7 +42,7 @@ def band_limits(band_name, trans_limit):
     return np.min(transmission_limits), np.max(transmission_limits)
 
 
-def chisq(wave, flux, flux_err, model_flux, start, end):
+def calc_chisq(wave, flux, flux_err, model_flux, start, end):
     """Calculate the chi-squared for a spectrum within a wavelength range
 
     Args:
@@ -64,11 +65,14 @@ def chisq(wave, flux, flux_err, model_flux, start, end):
     return np.sum(chisq_arr ** 2)
 
 
-def create_empty_output_table(band_names):
+def create_empty_chisq_table(col_names):
     """Create an empty astropy table for storing chi-squared results
 
+    Returned table has columns 'obj_id', 'source', 'version', 'time' and
+    *col_names.
+
     Args:
-        band_names  (list): List band names
+        col_names (list): Additional columns to add
 
     Returns:
         An astropy table
@@ -76,36 +80,105 @@ def create_empty_output_table(band_names):
 
     names = ['obj_id', 'source', 'version', 'time']
     dtype = ['U100', 'U100', 'U100', float]
-    names.extend(band_names)
-    dtype.extend((float for _ in band_names))
+    names.extend(col_names)
+    dtype.extend((float for _ in col_names))
 
     out_table = Table(names=names, dtype=dtype, masked=True)
     return out_table
 
 
-def tabulate_chisq(data_release, models, bands, err_estimate=.03,
-                   trans_limit=.1, out_path=None):
+def create_new_table_row(obj_id, model, time, wave, flux, eflux, t0,
+                         features=None, bands=None, trans_limit=None):
+    """Calculate chi-squareds for a spectrum in multiple bands or features
+
+    Results for formatted as a new row for tables returned by
+    ``create_empty_chisq_table``. If ``bands`` and ``trans_limit`` are given
+    then the chi-squared is determined per band. If ``features`` is given, then
+    the chi-squared is determined per feature.
+
+    Args:
+        obj_id        (str): Id for the object being considered
+        model       (Model): An sncosmo model
+        time        (float): Observation time of the spectra
+        wave        (array): Wavelengths for the spectrum
+        flux        (array): Fluxes for the spectrum
+        eflux       (array): Error in ``flux``
+        t0          (float): Peak time of target
+        features     (dict): Dictionary of features (optional)
+        bands        (list): List of sncosmo registered band names (optional)
+        trans_limit (float): Transmission limit for defining band wave range
+
+    Returns:
+        A list representing a new table row
+        A mask for the new row
+    """
+
+    new_row = [obj_id, model.source.name, model.source.version, time]
+    mask = [False, False, False, False]
+    model_flux = model.flux(time - t0, wave)
+
+    if bands and trans_limit:
+        for band in bands:
+            wave_start, wave_end = band_limits(band, trans_limit)
+
+            try:
+                chisq = calc_chisq(
+                    wave, flux, eflux, model_flux, wave_start, wave_end)
+                new_row.append(chisq)
+                mask.append(False)
+
+            except UnobservedFeature:
+                new_row.append(np.NAN)
+                mask.append(True)
+
+    elif features:
+        for feature in features:
+            try:
+                wave_start, wave_end = get_feature_bounds(wave, flux, feature)
+                chisq = calc_chisq(wave, flux, eflux, model_flux, wave_start, wave_end)
+                new_row.append(chisq)
+                mask.append(False)
+
+            except UnobservedFeature:
+                new_row.append(np.NAN)
+                mask.append(True)
+
+    else:
+        raise ValueError(
+            'Must specify either ``features`` or ``bands`` and ``trans_limit``')
+
+    return new_row, mask
+
+
+def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
+                   bands=None, trans_limit=None, out_path=None):
     """Tabulate band specific chi-squared values for spectroscopic observations
 
-    The chi-squared is calculated over the wavelength range where the
-    transmission is above ``transmission_limit``. Specifying ``bands = 'all'``
+    If ``bands`` and ``trans_limit`` are given then the chi-squared is
+    determined per band  over the wavelength range where the
+    transmission is above ``trans_limit``. Specifying ``bands = 'all'``
     will calculate the chisquared for the entire spectrum.
 
-    Defaults to a 3% error in observed spectra and a 10% transmission limit.
+    If ``features`` is given, then the chi-squared is determined per feature.
+    See ``analysis.equivalent_width.features`` for an example.
+
+    Error in the flux is assumed to be a fraction of the observed flux.
+    Defaults assume a 3% error in observed spectra.
 
     Args:
         data_release (module): An sndata data release
         models         (list): List of sncosmo models
-        bands          (list): A list of band names
         err_estimate  (float): Error estimate for spectra as fraction of flux
+        bands          (list): A list of band names
         trans_limit   (float): Transmission limit for defining band wave range
+        features       (dict):
         out_path        (str): Optionally write results to file
 
     Returns:
         An astropy table of chi-squared values
     """
 
-    out_table = create_empty_output_table(bands)
+    out_table = create_empty_chisq_table(bands)
     data_iter = data_release.iter_data(
         verbose={'desc': 'Targets'}, filter_func=utils.filter_has_csp_data)
 
@@ -123,22 +196,9 @@ def tabulate_chisq(data_release, models, bands, err_estimate=.03,
             model.set(extebv=ebv, z=z)
 
             for t, w, f, fe in zip(obs_time, wave, flux, flux_err):
-                new_row = [obj_id, model.source.name, model.source.version, t]
-                mask = [False, False, False, False]
-                model_flux = model.flux(t - t0, w)
-
-                for band in bands:
-                    band_start, band_end = band_limits(band, trans_limit)
-
-                    try:
-                        chisq = chisq(w, f, fe, model_flux, band_start,
-                                      band_end)
-                        new_row.append(chisq)
-                        mask.append(False)
-
-                    except UnobservedFeature:
-                        new_row.append(np.NAN)
-                        mask.append(True)
+                new_row, mask = create_new_table_row(
+                    obj_id, model, t, w, f, fe, t0,
+                    features, bands, trans_limit)
 
                 out_table.add_row(new_row, mask=mask)
                 if out_table:
