@@ -132,10 +132,10 @@ if __name__ == '__main__':
         default=['./'],
         help='Output directory')
 
-    color_parser = subparsers.add_parser(
-        'lc_color', help='Compare color evolution with models.')
-    color_parser.set_defaults(func=run_lc_color)
+    color_parser = subparsers.add_parser('lc_color',
+        help='Compare color evolution with models.')
 
+    color_parser.set_defaults(func=run_lc_color)
     color_parser.add_argument(
         '-m', '--models',
         type=str,
@@ -143,10 +143,10 @@ if __name__ == '__main__':
         required=True,
         help='Models to use')
 
-    ew_parser = subparsers.add_parser(
-        'equivalent_width', help='Calculate pseudo equivalent width values')
-    ew_parser.set_defaults(func=run_ew)
+    ew_parser = subparsers.add_parser('equivalent_width',
+        help='Calculate pseudo equivalent width values')
 
+    ew_parser.set_defaults(func=run_ew)
     ew_parser.add_argument(
         '-m', '--models',
         type=str,
@@ -156,8 +156,8 @@ if __name__ == '__main__':
 
     spec_chisq_parser = subparsers.add_parser('spec_chisq',
         help='Calculate chi-squared for spectra')
-    spec_chisq_parser.set_defaults(func=run_ew)
 
+    spec_chisq_parser.set_defaults(func=run_spec_chisq)
     spec_chisq_parser.add_argument(
         '-m', '--models',
         type=str,

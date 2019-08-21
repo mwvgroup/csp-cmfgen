@@ -8,9 +8,7 @@ import sncosmo
 from sndata.csp import dr1, dr3
 from tqdm import tqdm
 
-
-class NoCSPData(Exception):
-    pass
+from .exceptions import NoCSPData
 
 
 def filter_has_csp_data(data_table):

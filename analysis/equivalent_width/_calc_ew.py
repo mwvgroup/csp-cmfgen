@@ -12,13 +12,10 @@ import yaml
 from astropy.table import Table, vstack
 
 from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
+from ..exceptions import NoCSPData, UnobservedFeature
 
 with open(Path(__file__).parent / 'features.yml') as infile:
     FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
-
-
-class UnobservedFeature(Exception):
-    pass
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
@@ -241,7 +238,7 @@ def tabulate_pew_spectra(
             # Shift observed time to B-band peak
             time -= get_csp_t0(obj_id)
 
-        except ValueError:
+        except NoCSPData:
             continue
 
         spectra_iter = make_pbar(
