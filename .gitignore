@@ -1,5 +1,4 @@
 analysis/models/NPZ_models/*.npz
-notebooks/figures/
 
 # OS Files
 *.DS_Store
