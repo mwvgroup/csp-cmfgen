@@ -24,9 +24,6 @@ def band_limits(band_name, trans_limit):
     """Return wavelength range where a band is above a given transmission
 
     Args:
-        wave      (ndarray): An array of wavelengths
-        flux      (ndarray): An array of flux values
-        flux_err  (ndarray): An array of error values for ``flux``
         band_name     (str): Name of an sncosmo registered band
         trans_limit (float): The transmission limit
 
@@ -151,13 +148,13 @@ def create_new_table_row(obj_id, model, time, wave, flux, eflux, t0,
 
 
 def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
-                   bands=None, trans_limit=None, out_path=None):
+                   bands=None, trans_limit=.1, out_path=None):
     """Tabulate band specific chi-squared values for spectroscopic observations
 
     If ``bands`` and ``trans_limit`` are given then the chi-squared is
     determined per band  over the wavelength range where the
     transmission is above ``trans_limit``. Specifying ``bands = 'all'``
-    will calculate the chisquared for the entire spectrum.
+    will calculate the chi-squared for the entire spectrum.
 
     If ``features`` is given, then the chi-squared is determined per feature.
     See ``analysis.equivalent_width.features`` for an example.

@@ -17,6 +17,7 @@ data, particularly with upcoming surveys like LSST.
 
    Overview<self>
    installation
+   cli
 
 
 .. toctree::

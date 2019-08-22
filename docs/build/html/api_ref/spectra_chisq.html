@@ -82,6 +82,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface</a></li>
 </ul>
 <p class="caption"><span class="caption-text">API Reference:</span></p>
 <ul class="current">
@@ -168,9 +169,6 @@ spectra.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wave</strong> (<em>ndarray</em>) – An array of wavelengths</li>
-<li><strong>flux</strong> (<em>ndarray</em>) – An array of flux values</li>
-<li><strong>flux_err</strong> (<em>ndarray</em>) – An array of error values for <code class="docutils literal notranslate"><span class="pre">flux</span></code></li>
 <li><strong>band_name</strong> (<em>str</em>) – Name of an sncosmo registered band</li>
 <li><strong>trans_limit</strong> (<em>float</em>) – The transmission limit</li>
 </ul>
@@ -210,12 +208,12 @@ spectra.</p>
 
 <dl class="function">
 <dt id="analysis.spectra_chisq.tabulate_chisq">
-<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">tabulate_chisq</code><span class="sig-paren">(</span><em>data_release</em>, <em>models</em>, <em>err_estimate=0.03</em>, <em>features=None</em>, <em>bands=None</em>, <em>trans_limit=None</em>, <em>out_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.tabulate_chisq" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">tabulate_chisq</code><span class="sig-paren">(</span><em>data_release</em>, <em>models</em>, <em>err_estimate=0.03</em>, <em>features=None</em>, <em>bands=None</em>, <em>trans_limit=0.1</em>, <em>out_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.tabulate_chisq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tabulate band specific chi-squared values for spectroscopic observations</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">bands</span></code> and <code class="docutils literal notranslate"><span class="pre">trans_limit</span></code> are given then the chi-squared is
 determined per band  over the wavelength range where the
 transmission is above <code class="docutils literal notranslate"><span class="pre">trans_limit</span></code>. Specifying <code class="docutils literal notranslate"><span class="pre">bands</span> <span class="pre">=</span> <span class="pre">'all'</span></code>
-will calculate the chisquared for the entire spectrum.</p>
+will calculate the chi-squared for the entire spectrum.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">features</span></code> is given, then the chi-squared is determined per feature.
 See <code class="docutils literal notranslate"><span class="pre">analysis.equivalent_width.features</span></code> for an example.</p>
 <p>Error in the flux is assumed to be a fraction of the observed flux.

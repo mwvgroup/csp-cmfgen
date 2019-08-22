@@ -15,7 +15,8 @@ version, release = '', ''
 extensions = [
     'sphinx.ext.autodoc',
     # 'sphinx.ext.viewcode',  # Can add back in after code is public
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinxarg.ext'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
