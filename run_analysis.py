@@ -61,7 +61,8 @@ def run_lc_color(cli_args):
         'csp_dr3_H',
     ]
 
-    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in range(len(unique_bands) - 1)]
+    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in
+                    range(len(unique_bands) - 1)]
     out_dir = Path(cli_args.out_dir) / 'color_evolution'
     tqdm.write('Tabulating color evolution')
     for model in get_models(cli_args.models):
@@ -107,21 +108,32 @@ def run_spec_chisq(cli_args):
         cli_args (argparse.Namespace): Command line arguments
     """
 
-    out_dir = Path(cli_args.out_dir)
+    out_dir = Path(cli_args.out_dir) / 'spec_chisq'
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    spectra_chisq.tabulate_chi_squared(
+    file_name = 'bands.ecsv'
+    if cli_args.features is not None:
+        file_name = 'features.ecsv'
+        cli_args.features = \
+            {f: equivalent_width.features[f] for f in cli_args.features}
+
+    spectra_chisq.tabulate_chisq(
         data_release=dr1,
         bands=dr3.band_names,
         models=get_models(cli_args.models),
         err_estimate=cli_args.err_estimate,
         trans_limit=cli_args.trans_limit,
-        out_path=out_dir / 'spec_chisq.ecsv'
+        out_path=out_dir / file_name
     )
 
 
-# Parse command line input
-if __name__ == '__main__':
+def create_parser():
+    """Create a command line argument parser
+
+    Returns:
+        An ``argparse.ArgumentParser`` object
+    """
+
     parser = argparse.ArgumentParser(
         description='Compare various SN models against CSP data.')
     subparsers = parser.add_subparsers(help='')
@@ -133,7 +145,7 @@ if __name__ == '__main__':
         help='Output directory')
 
     color_parser = subparsers.add_parser('lc_color',
-        help='Compare color evolution with models.')
+                                         help='Compare color evolution with models.')
 
     color_parser.set_defaults(func=run_lc_color)
     color_parser.add_argument(
@@ -144,7 +156,7 @@ if __name__ == '__main__':
         help='Models to use')
 
     ew_parser = subparsers.add_parser('equivalent_width',
-        help='Calculate pseudo equivalent width values')
+                                      help='Calculate pseudo equivalent width values')
 
     ew_parser.set_defaults(func=run_ew)
     ew_parser.add_argument(
@@ -155,7 +167,7 @@ if __name__ == '__main__':
         help='Models to use')
 
     spec_chisq_parser = subparsers.add_parser('spec_chisq',
-        help='Calculate chi-squared for spectra')
+                                              help='Calculate chi-squared for spectra')
 
     spec_chisq_parser.set_defaults(func=run_spec_chisq)
     spec_chisq_parser.add_argument(
@@ -168,7 +180,7 @@ if __name__ == '__main__':
     spec_chisq_parser.add_argument(
         '-e', '--err_estimate',
         type=float,
-        default=None,
+        default=.03,
         help='Error estimate as a fraction of the flux')
 
     spec_chisq_parser.add_argument(
@@ -188,8 +200,15 @@ if __name__ == '__main__':
     spec_chisq_parser.add_argument(
         '-t', '--trans_limit',
         type=float,
-        default=None,
+        default=.1,
         help='Transmission cutoff applied to each band')
 
+    return parser
+
+
+if __name__ == '__main__':
+    # Parse command line input
+
+    parser = create_parser()
     cli_args = parser.parse_args()
     cli_args.func(cli_args)
