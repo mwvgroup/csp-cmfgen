@@ -12,6 +12,30 @@ from analysis import spectra_chisq
 from analysis.exceptions import UnobservedFeature
 
 
+def create_test_spectra(flux_diff, wave_start, wave_end, error=1):
+    """Define arrays of constant observed flux, modeled flux, and errors
+
+    Args:
+        flux_diff  (float): Constant offset in flux between model and
+        wave_start (float): Starting wavelength ofr spectrum
+        wave_end   (float): Ending wavelength ofr spectrum
+        error      (float): A constant error value
+
+    Returns:
+        An array of wavelengths
+        An array of flux values
+        An array of values equal to ``error``
+        An array of model fluxes
+    """
+
+    wave = np.arange(wave_start, wave_end)
+    flux = np.ones_like(wave) * 20
+    eflux = np.ones_like(wave) * error
+    model_flux = flux - flux_diff
+
+    return wave, flux, eflux, model_flux
+
+
 class ChiSquaredCalculation(TestCase):
     """Test the calculation of chi-squared values"""
 
@@ -24,10 +48,10 @@ class ChiSquaredCalculation(TestCase):
         """
 
         cls.flux_diff = 10  # Constant offset between model and observed flux
-        cls.wave = np.arange(1000, 1101)
-        cls.flux = np.ones_like(cls.wave) * 20
-        cls.eflux = np.ones_like(cls.wave)
-        cls.model_flux = cls.flux - cls.flux_diff
+
+        start_wave, end_wave = 1000, 1101
+        cls.wave, cls.flux, cls.eflux, cls.model_flux = \
+            create_test_spectra(cls.flux_diff, start_wave, end_wave)
 
     def test_correct_return_value(self):
         """Test the correct chi-squared is returned"""
@@ -87,6 +111,15 @@ class BandBoundaries(TestCase):
         args = (band_name, 10)  # second value is a dummy value
         self.assertRaises(Exception, spectra_chisq.band_limits, *args)
 
+    def test_transmission_too_high(self):
+        """Test a ValueError is raised for a transmission limit higher that
+        the peak of the transmission filter
+        """
+
+        args = ('test_tophat', self.top_hat_height + 1)
+        self.assertRaises(ValueError, spectra_chisq.band_limits, *args)
+
+
 
 class OutputTable(TestCase):
     """Test the generation of an empty table for storing chi-squared data"""
@@ -118,3 +151,63 @@ class OutputTable(TestCase):
         """Test the returned table is empty"""
 
         self.assertEqual(0, len(self.test_table))
+
+
+class NewTableRow(TestCase):
+    """Test the creation of new row entries for a table of chisq results"""
+
+    @classmethod
+    def setUpClass(cls):
+        # Define two features and bands to determine chi-squared in
+        cls.bands = ['sdssu', 'sdssg']
+        cls.features = {'feat1': None, 'feat2': None}
+
+        # Define model flux that is within the range of the first band/feature
+        # but not the second
+        flux_offset, start_wave, end_wave = 10, 3200, 4000
+        cls.wave, cls.flux, cls.eflux, cls.model_flux = \
+            create_test_spectra(flux_offset, start_wave, end_wave)
+
+    def test_error_for_missing_args(self):
+        """Test ValueError raised if ``bands`` or ``features`` not specified"""
+
+        kwargs = dict(
+            obj_id='gummy_id',
+            model=sncosmo.Model('salt2'),
+            time=1,
+            wave=[1000],
+            flux=[1],
+            eflux=[1],
+            t0=1
+        )
+
+        self.assertRaises(
+            ValueError, spectra_chisq._chisq.create_new_table_row, **kwargs)
+
+    def test_row_for_band(self):
+        """Test correct row length and mask is returned when bands are given"""
+
+        # Define dummy arguments
+        obj_id = 'dummy_id'
+        model = sncosmo.Model('salt2')
+        time, t0 = 10, 1
+        trans_limit = .05
+
+        new_row, mask = spectra_chisq._chisq.create_new_table_row(
+            obj_id=obj_id,
+            model=model,
+            time=time,
+            wave=self.wave,
+            flux=self.flux,
+            eflux=self.eflux,
+            t0=t0,
+            bands=self.bands,
+            trans_limit=trans_limit
+        )
+
+        num_base_columns = 4
+        expected_len = num_base_columns + len(self.bands)
+        expected_mask = [False for _ in range(num_base_columns)] + [False, True]
+
+        self.assertEqual(expected_len, len(new_row), 'New row is wrong length')
+        self.assertSequenceEqual(expected_mask, mask, 'New row has wrong mask')

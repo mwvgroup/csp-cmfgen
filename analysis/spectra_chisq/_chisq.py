@@ -36,6 +36,9 @@ def band_limits(band_name, trans_limit):
 
     band = sncosmo.get_bandpass(band_name)
     transmission_limits = band.wave[band.trans >= trans_limit]
+    if len(transmission_limits) == 0:
+        raise ValueError('Transmission limit > filter transmission')
+
     return np.min(transmission_limits), np.max(transmission_limits)
 
 
