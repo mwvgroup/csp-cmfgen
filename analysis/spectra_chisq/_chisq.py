@@ -42,6 +42,8 @@ def band_limits(band_name, trans_limit):
 def calc_chisq(wave, flux, flux_err, model_flux, start, end):
     """Calculate the chi-squared for a spectrum within a wavelength range
 
+    Calculation includes boundary wavelengths.
+
     Args:
         wave       (ndarray): An array of wavelengths
         flux       (ndarray): An array of flux values
@@ -57,7 +59,7 @@ def calc_chisq(wave, flux, flux_err, model_flux, start, end):
     if start < np.min(wave) or np.max(wave) < end:
         raise UnobservedFeature
 
-    indices = np.where((start < wave) & (wave < end))[0]
+    indices = np.where((start <= wave) & (wave <= end))[0]
     chisq_arr = (flux[indices] - model_flux[indices]) / flux_err[indices]
     return np.sum(chisq_arr ** 2)
 

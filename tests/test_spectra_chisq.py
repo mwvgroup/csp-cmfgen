@@ -96,7 +96,7 @@ class OutputTable(TestCase):
         """Create an empty table for testing"""
 
         cls.extra_col_names = ['test_col1', 'test_col2']
-        cls.test_table = spectra_chisq._band_chisq.create_empty_chisq_table(
+        cls.test_table = spectra_chisq._chisq.create_empty_chisq_table(
             cls.extra_col_names)
 
     def test_col_names(self):
