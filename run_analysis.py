@@ -119,7 +119,8 @@ def run_spec_chisq(cli_args):
 
     spectra_chisq.tabulate_chisq(
         data_release=dr1,
-        bands=dr3.band_names,
+        bands=cli_args.bands,
+        features=cli_args.features,
         models=get_models(cli_args.models),
         err_estimate=cli_args.err_estimate,
         trans_limit=cli_args.trans_limit,
@@ -208,7 +209,6 @@ def create_parser():
 
 if __name__ == '__main__':
     # Parse command line input
-
     parser = create_parser()
     cli_args = parser.parse_args()
     cli_args.func(cli_args)

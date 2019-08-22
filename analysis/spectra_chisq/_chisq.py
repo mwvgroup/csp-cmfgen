@@ -131,7 +131,7 @@ def create_new_table_row(obj_id, model, time, wave, flux, eflux, t0,
                 mask.append(True)
 
     elif features:
-        for feature in features:
+        for feature in features.values():
             try:
                 wave_start, wave_end = get_feature_bounds(wave, flux, feature)
                 chisq = calc_chisq(wave, flux, eflux, model_flux, wave_start, wave_end)
@@ -177,7 +177,16 @@ def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
         An astropy table of chi-squared values
     """
 
-    out_table = create_empty_chisq_table(bands)
+    if bands:
+        out_table = create_empty_chisq_table(bands)
+
+    elif features:
+        out_table = create_empty_chisq_table(features)
+
+    else:
+        raise ValueError(
+            'Must specify either ``features`` or ``bands`` and ``trans_limit``')
+
     data_iter = data_release.iter_data(
         verbose={'desc': 'Targets'}, filter_func=utils.filter_has_csp_data)
 
