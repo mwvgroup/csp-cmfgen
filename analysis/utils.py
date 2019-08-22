@@ -65,7 +65,7 @@ def get_csp_t0(obj_id):
     Args:
         obj_id (str): The object Id value
 
-    Return:
+    Returns:
         The published MJD of maximum minus 53000
     """
 
@@ -84,7 +84,7 @@ def get_csp_ebv(obj_id):
     Args:
         obj_id (str): The object Id value
 
-    Return:
+    Returns:
         The published E(B - V) value
     """
 

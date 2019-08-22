@@ -106,8 +106,8 @@ def create_new_table_row(obj_id, model, time, wave, flux, eflux, t0,
         trans_limit (float): Transmission limit for defining band wave range
 
     Returns:
-        A list representing a new table row
-        A mask for the new row
+        - A list representing a new table row
+        - A mask for the new row
     """
 
     new_row = [obj_id, model.source.name, model.source.version, time]
