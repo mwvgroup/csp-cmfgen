@@ -11,8 +11,8 @@ import numpy as np
 import yaml
 from astropy.table import Table, vstack
 
-from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
 from ..exceptions import NoCSPData, UnobservedFeature
+from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
 
 with open(Path(__file__).parent / 'features.yml') as infile:
     FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
@@ -193,7 +193,8 @@ def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
             # Shift time to beginning of explosion
             t0 = model.source.peakphase('csp_dr3_B')
             model_pew_results = calc_pew(
-                wave, model.flux(time - t0, wave), feature, feat_start, feat_end)
+                wave, model.flux(time - t0, wave), feature, feat_start,
+                feat_end)
 
             pew_data.append(model_pew_results)
 

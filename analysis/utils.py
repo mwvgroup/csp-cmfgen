@@ -5,10 +5,52 @@
 
 import numpy as np
 import sncosmo
+from astropy.time import Time
 from sndata.csp import dr1, dr3
 from tqdm import tqdm
 
 from .exceptions import NoCSPData
+
+
+def chisq(data, error, model):
+    """Calculate chi-squared
+
+    Args:
+        data  (ndarray): Observed values
+        error (ndarray): Observed errors
+        model (ndarray): Modeled Values
+
+    Returns:
+        sum(((data - model) / error) ** 2)
+    """
+
+    return np.sum(((data - model) / error) ** 2)
+
+
+@np.vectorize
+def convert_to_jd(date):
+    """Convert MJD and Snoopy dates into JD
+
+    Args:
+        date (float): Time stamp in JD, MJD, or SNPY format
+
+    Returns:
+        The time value in JD format
+    """
+
+    snoopy_offset = 53000
+    mjd_offset = 2400000.5
+    date_format = 'mjd'
+
+    if date < snoopy_offset:
+        date += snoopy_offset
+
+    elif date > mjd_offset:
+        date_format = 'jd'
+
+    t = Time(date, format=date_format)
+    t.format = 'jd'
+    return t.value
 
 
 def filter_has_csp_data(data_table):
