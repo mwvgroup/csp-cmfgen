@@ -31,7 +31,7 @@ Usage Example
 >>> models.register_sources()
 >>>
 >>> # Initialize a CMFGEN model where the version is the model mass
->>> source = sncosmo.get_source('CMFGEN', version=1.04)
+>>> source = sncosmo.get_source('CMFGEN', version='1.04')
 >>> model = sncosmo.Model(source=source)
 >>>
 >>> # run the fit
