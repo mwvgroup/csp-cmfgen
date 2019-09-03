@@ -25,6 +25,7 @@ __all__ = [
 
 
 # Todo: Write the color_warp_spectrum function
+# noinspection PyUnusedLocal
 def color_warp_spectrum(wave, flux, flux_err, **kwargs):
     """Color warp a spectrum
 
@@ -45,10 +46,7 @@ def band_limits(band_name, trans_limit):
     """Return wavelength range where a band is above a given transmission
 
     Args:
-        wave      (ndarray): An array of wavelengths
-        flux      (ndarray): An array of flux values
-        flux_err  (ndarray): An array of error values for ``flux``
-        band_name     (str): Name of an sncosmo registered band
+        band_name     (str): The name of an sncosmo registered band
         trans_limit (float): The transmission limit
 
     Returns:

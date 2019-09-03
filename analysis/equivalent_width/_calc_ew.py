@@ -11,14 +11,11 @@ import numpy as np
 import yaml
 from astropy.table import Table, vstack
 
+from ..exceptions import NoCSPData, UnobservedFeature
 from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
 
 with open(Path(__file__).parent / 'features.yml') as infile:
     FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
-
-
-class UnobservedFeature(Exception):
-    pass
 
 
 # noinspection PyTypeChecker, PyUnresolvedReferences
@@ -196,7 +193,8 @@ def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
             # Shift time to beginning of explosion
             t0 = model.source.peakphase('csp_dr3_B')
             model_pew_results = calc_pew(
-                wave, model.flux(time - t0, wave), feature, feat_start, feat_end)
+                wave, model.flux(time - t0, wave), feature, feat_start,
+                feat_end)
 
             pew_data.append(model_pew_results)
 
@@ -241,7 +239,7 @@ def tabulate_pew_spectra(
             # Shift observed time to B-band peak
             time -= get_csp_t0(obj_id)
 
-        except ValueError:
+        except NoCSPData:
             continue
 
         spectra_iter = make_pbar(
@@ -251,7 +249,9 @@ def tabulate_pew_spectra(
             position=1,
             total=len(time))
 
-        pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra_iter])
+        pew_table = vstack(
+            [tabulate_pew_spectrum(*s, models, fix_boundaries) for s in
+             spectra_iter])
         pew_table['obj_id'] = data_table.meta['obj_id']
         pew_data.append(pew_table)
 

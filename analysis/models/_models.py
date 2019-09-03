@@ -109,6 +109,7 @@ def register_sources(force=False):
     """
 
     for version in VERSION_PATHS.keys():
+        # String version key
         sncosmo.register_loader(
             data_class=sncosmo.Source,
             name='CMFGEN',
@@ -116,6 +117,7 @@ def register_sources(force=False):
             version=str(version),
             force=force)
 
+        # Float version key
         sncosmo.register_loader(
             data_class=sncosmo.Source,
             name='CMFGEN',

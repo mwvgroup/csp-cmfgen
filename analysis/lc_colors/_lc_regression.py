@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-"""This module fits light curves using gaussian regression as outlined in
-Boone et al. 2019. Some of the source code is ported from the avocado package,
-which is described by the same paper.
+"""This module ports logic from the ``avocado`` package for fitting
+light-curves with a gaussian regression. This module is meant as a place holder
+for if / when ``avocado`` is upgraded to handle data other than the PLAsTiCC
+data set. See Boone et al. 2019 for more details.
 """
 
 from functools import partial
@@ -59,6 +60,7 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
     if isinstance(data, Table):
         data = data.to_pandas()
 
+    # Format data. Not included in original Avocado code
     fluxes = data['flux']
     flux_errors = data['fluxerr']
     wavelengths = data['band'].map(get_effective_wavelength)
@@ -105,61 +107,11 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
         warn("GP fit failed! Using guessed GP parameters. ")
 
     gp.set_parameter_vector(fit_result.x)
-    return partial(gp.predict, fluxes)
 
+    # Wrap the output function to return error instead of variance
+    # Not included in original Avocado code
+    def out_func(*args, **kwargs):
+        p, pv = partial(gp.predict, fluxes)(*args, **kwargs)
+        return p, np.sqrt(pv)
 
-def predict_band_flux(gp, band_name, times):
-    """Return the flux modeled by a gaussian regression in a single band
-
-    Args:
-        gp         (GP): A fitted gaussian process
-        band_name (str): Name of band pass to return flux for
-        times    (list): Times to predict flux for
-
-    Returns:
-        An array of flux values for the given times
-        The errors in each flux value
-    """
-
-    effective_wavelength = get_effective_wavelength(band_name)
-    wavelengths = np.ones(len(times)) * effective_wavelength
-    predict_x_vals = np.vstack([times, wavelengths]).T
-    return gp(predict_x_vals, return_var=True)
-
-
-def predict_light_curve(gp, bands, times):
-    """Return the flux modeled by a gaussian regression in multiple bands
-
-    Args:
-        gp      (GP): A fitted gaussian process
-        bands (list): Name of band passes to return flux for
-        times (list): Times to predict flux for
-
-    Returns:
-        A 2d array of flux values for each band
-        A 2d array of errors for the predicted flux
-    """
-
-    lc = np.array([predict_band_flux(gp, band, times) for band in bands])
-    return lc[:, 0, :], np.sqrt(lc[:, 1, :])
-
-
-def predict_color(gp, band1, band2, time):
-    """Return the color value modeled by a gaussian regression
-
-    Returns the band1 - band2 color.
-
-    Args:
-        gp     (GP): A fitted gaussian process
-        band1 (str): Name of the first band in the magnitude difference
-        band2 (str): Name of the second band in the magnitude difference
-        time (list): A 2d array of times for each band combination
-
-    Returns:
-        The predicted color
-        The variance in the predicted color
-    """
-
-    band1_pred, band1_var = predict_band_flux(gp, band1, time)
-    band2_pred, band2_var = predict_band_flux(gp, band2, time)
-    return -2.5 * (np.log10(band1_pred) - np.log10(band2_pred))
+    return out_func

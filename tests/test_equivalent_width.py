@@ -10,16 +10,13 @@ import sncosmo
 from sndata.csp import dr1, dr3
 
 from analysis import equivalent_width as equiv_width
-from analysis import models
 from analysis import utils
 
-models.register_sources()
 dr3.download_module_data()
 dr3.register_filters()
 
 
-def create_test_spectrum(feat_start, feat_end, slope, cont_intercept,
-                         feat_intercept):
+def create_test_spectrum(feat_start, feat_end, slope, cont_intercept, feat_intercept):
     """Create a dummy spectrum with an absorption feature and linear continuum
 
     The y-intercept of the feature is fixed at 1. The feature starts at 0 and
@@ -200,11 +197,9 @@ class Tabulation(TestCase):
     @classmethod
     def setUpClass(cls):
         # Load CMFGEN models
-        m102 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.02))
-        m104 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.04))
-        m14 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.4))
-        m17 = sncosmo.Model(sncosmo.get_source('CMFGEN', version=1.7))
-        cls.model_list = [m102, m104, m14, m17]
+        salt2 = sncosmo.Model('salt2')
+        hsiao = sncosmo.Model('hsiao')
+        cls.model_list = [salt2, hsiao]
         for model in cls.model_list:
             model.add_effect(sncosmo.F99Dust(), 'ext', 'rest')
 

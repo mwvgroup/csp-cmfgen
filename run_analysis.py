@@ -21,6 +21,22 @@ dr1.download_module_data()
 dr3.download_module_data()
 dr3.register_filters()
 
+BAND_COMBOS = [
+    ('csp_dr3_u', 'csp_dr3_g'),
+    ('csp_dr3_g', 'csp_dr3_r'),
+    ('csp_dr3_r', 'csp_dr3_i'),
+    ('csp_dr3_B', 'csp_dr3_i'),
+    ('csp_dr3_B', 'csp_dr3_V'),
+    ('csp_dr3_B', 'csp_dr3_V0'),
+    ('csp_dr3_B', 'csp_dr3_V1'),
+
+    ('csp_dr3_Y', 'csp_dr3_J'), ('csp_dr3_Y', 'csp_dr3_Jdw'),
+    ('csp_dr3_Ydw', 'csp_dr3_J'), ('csp_dr3_Ydw', 'csp_dr3_Jdw'),
+
+    ('csp_dr3_J', 'csp_dr3_H'), ('csp_dr3_J', 'csp_dr3_Hdw'),
+    ('csp_dr3_Jdw', 'csp_dr3_H'), ('csp_dr3_Jdw', 'csp_dr3_Hdw'),
+]
+
 
 def get_models(model_id_list):
     """Return a list of models corresponding to a list of model ids
@@ -44,69 +60,100 @@ def get_models(model_id_list):
     return model_list
 
 
-def run_lc_color(cli_args):
-    """Run color analysis
+def run_color_15(cli_args):
+    """Tabulate change in color over 15 days
 
     Args:
-        cli_args (argparse.Namespace): Command line arguments
+        cli_args (Namespace): Command line arguments
     """
 
-    unique_bands = [
-        'csp_dr3_u',
-        'csp_dr3_g',
-        'csp_dr3_r',
-        'csp_dr3_i',
-        'csp_dr3_B',
-        'csp_dr3_V',
-        'csp_dr3_Y',
-        'csp_dr3_J'
-        'csp_dr3_H',
-    ]
+    out_dir = Path(cli_args.out_dir)
 
-    color_combos = [(unique_bands[i], unique_bands[i + 1]) for i in range(len(unique_bands) - 1)]
-    out_dir = Path(cli_args.out_dir) / 'color_evolution'
-    tqdm.write('Tabulating color evolution')
-    for model in get_models(cli_args.models):
-        tqdm.write(f'Fitting {model.source.name} {model.source.version}')
-        file_name = f'{model.source.name}_{model.source.version}.ecsv'
-        t = lc_colors.tabulate_residuals(dr3, model, color_combos)
-        t.write(out_dir / file_name, overwrite=True)
-        tqdm.write('\n')
+    tqdm.write('Tabulating delta color 15')
+    lc_colors.tabulate_delta_15(
+        data_release=dr3,
+        models=get_models(cli_args.models),
+        band_combos=BAND_COMBOS,
+        out_path=out_dir / f'delta_c_15.ecsv')
+    
+    tqdm.write('\n')
+
+
+def run_color_chisq(cli_args):
+    """Tabulate chi-squares for color evolution
+
+    Args:
+        cli_args (Namespace): Command line arguments
+    """
+
+    out_dir = Path(cli_args.out_dir) / 'color_chisq'
+
+    out_dir.mkdir(exist_ok=True, parents=True)
+    if (cli_args.start is None) or (cli_args.end is None):
+        trange = None
+        out_path = out_dir / 'no_limit.ecsv'
+
+    else:
+        trange = (cli_args.start, cli_args.end)
+        out_path = out_dir / f'{trange[0]}_{trange[1]}.ecsv'.replace('-', 'n')
+
+    tqdm.write('Tabulating color chisq (phase range = {})'.format(trange))
+    lc_colors.tabulate_chisq(
+        data_release=dr3,
+        models=get_models(cli_args.models),
+        band_combos=BAND_COMBOS,
+        prange=trange,
+        out_path=out_path)
+
+    tqdm.write('\n')
 
 
 def run_ew(cli_args):
     """Run equivalent width analysis
 
     Args:
-        cli_args (argparse.Namespace): Command line arguments
+        cli_args (Namespace): Command line arguments
     """
 
-    models = get_models(cli_args.models)
+    model_list = get_models(cli_args.models)
     out_dir = Path(cli_args.out_dir) / 'equivalent_width'
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    tqdm.write('Tabulating peak model pew...')
-    peak_pew = equivalent_width.tabulate_peak_model_pew(models)
+    tqdm.write('Tabulating peak model pew')
+    peak_pew = equivalent_width.tabulate_peak_model_pew(model_list)
     peak_pew.write(out_dir / f'peak_model_pew.ecsv', overwrite=True)
 
-    for fix_boundaries in (True, False):
-        start_msg = 'Tabulating equivalent widths (Fixed bounds = {})'
-        tqdm.write(start_msg.format(fix_boundaries))
+    fix_boundaries = bool(cli_args.fix_boundaries)
+    start_msg = 'Tabulating equivalent widths (Fixed bounds = {})'
+    tqdm.write(start_msg.format(fix_boundaries))
 
-        ew_results = equivalent_width.tabulate_pew_spectra(
-            data_release=dr1,
-            models=get_models(cli_args.models),
-            fix_boundaries=fix_boundaries)
+    ew_results = equivalent_width.tabulate_pew_spectra(
+        data_release=dr1,
+        models=get_models(cli_args.models),
+        fix_boundaries=fix_boundaries)
 
-        out_path = out_dir / f'fixed_{fix_boundaries}.ecsv'
-        ew_results.write(out_path, overwrite=True)
+    out_path = out_dir / f'fixed_{fix_boundaries}.ecsv'
+    ew_results.write(out_path, overwrite=True)
+    tqdm.write('\n')
 
 
-# Parse command line input
-if __name__ == '__main__':
+def create_parser():
+    """Create an command line parser
+
+    Returns:
+        An argparse command line parser
+    """
+
     parser = argparse.ArgumentParser(
         description='Compare various SN models against CSP data.')
     subparsers = parser.add_subparsers(help='')
+
+    parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
 
     parser.add_argument(
         '-o', '--out_dir',
@@ -114,27 +161,53 @@ if __name__ == '__main__':
         default=['./'],
         help='Output directory')
 
-    color_parser = subparsers.add_parser(
-        'lc_color', help='Compare color evolution with models.')
-    color_parser.set_defaults(func=run_lc_color)
+    # For tabulating chi-squared of color evolution
+    color_chisq_parser = subparsers.add_parser(
+        'color_chisq', help='Compare color evolution with models.')
 
-    color_parser.add_argument(
-        '-m', '--models',
+    color_chisq_parser.set_defaults(func=run_color_chisq)
+    color_chisq_parser.add_argument(
+        '-i', '--interval',
+        default=1,
+        type=int,
+        help='Spacing between phases when summing chisq')
+
+    color_chisq_parser.add_argument(
+        '-s', '--start',
+        type=float,
+        help='Start of phase range to use in chi-squared integration')
+
+    color_chisq_parser.add_argument(
+        '-e', '--end',
+        type=float,
+        help='End of phase range to use in chi-squared integration')
+
+    # For tabulating change in color over 15 days
+    color_15_parser = subparsers.add_parser(
+        'color_15', help='Compare color evolution with models.')
+
+    color_15_parser.set_defaults(func=run_color_15)
+    color_15_parser.add_argument(
+        '-b', '--t0_band',
         type=str,
-        nargs='+',
-        required=True,
-        help='Models to use')
+        help='Band to use when setting model t0 to peak')
 
+    # For tabulating pseudo equivalent width values
     ew_parser = subparsers.add_parser(
         'equivalent_width', help='Calculate pseudo equivalent width values')
+
     ew_parser.set_defaults(func=run_ew)
-
     ew_parser.add_argument(
-        '-m', '--models',
-        type=str,
-        nargs='+',
+        '-b', '--fix_boundaries',
         required=True,
-        help='Models to use')
+        type=int,
+        help='Fix feature boundaries to observed values')
 
+    return parser
+
+
+# Parse command line input
+if __name__ == '__main__':
+    parser = create_parser()
     cli_args = parser.parse_args()
     cli_args.func(cli_args)

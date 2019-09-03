@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="analysis.exceptions" href="exceptions.html" />
     <link rel="prev" title="analysis.lc_colors" href="lc_colors.html" /> 
 </head>
 
@@ -90,6 +91,7 @@
 <li class="toctree-l1"><a class="reference internal" href="equivalent_width.html">analysis.equivalent_width</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lc_colors.html">analysis.lc_colors</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">analysis.spectra_chisq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">analysis.exceptions</a></li>
 </ul>
 
             
@@ -158,31 +160,7 @@
 <span id="analysis-spectra-chisq"></span><h1>analysis.spectra_chisq<a class="headerlink" href="#module-analysis.spectra_chisq" title="Permalink to this headline">¶</a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">spectra_chisq</span></code> module calculates the chi-squared values for modeled
 spectra.</p>
-<p><strong>This module is incomplete, and is intended in it’s current form as a
-template / outline for future work.</strong></p>
-<dl class="function">
-<dt id="analysis.spectra_chisq.color_warp_spectrum">
-<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">color_warp_spectrum</code><span class="sig-paren">(</span><em>wave</em>, <em>flux</em>, <em>flux_err</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.color_warp_spectrum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Color warp a spectrum</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wave</strong> (<em>ndarray</em>) – An array of wavelengths</li>
-<li><strong>flux</strong> (<em>ndarray</em>) – An array of flux values</li>
-<li><strong>flux_err</strong> (<em>ndarray</em>) – An array of error values for <code class="docutils literal notranslate"><span class="pre">flux</span></code></li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An array of color warped flux values
-An array of error values for the color warped fluxes</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+<p><strong>This module is incomplete. It does not consider color warping.</strong></p>
 <dl class="function">
 <dt id="analysis.spectra_chisq.band_limits">
 <code class="descclassname">analysis.spectra_chisq.</code><code class="descname">band_limits</code><span class="sig-paren">(</span><em>band_name</em>, <em>trans_limit</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.band_limits" title="Permalink to this definition">¶</a></dt>
@@ -192,9 +170,6 @@ An array of error values for the color warped fluxes</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wave</strong> (<em>ndarray</em>) – An array of wavelengths</li>
-<li><strong>flux</strong> (<em>ndarray</em>) – An array of flux values</li>
-<li><strong>flux_err</strong> (<em>ndarray</em>) – An array of error values for <code class="docutils literal notranslate"><span class="pre">flux</span></code></li>
 <li><strong>band_name</strong> (<em>str</em>) – Name of an sncosmo registered band</li>
 <li><strong>trans_limit</strong> (<em>float</em>) – The transmission limit</li>
 </ul>
@@ -208,9 +183,10 @@ An array of error values for the color warped fluxes</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="analysis.spectra_chisq.band_chisq">
-<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">band_chisq</code><span class="sig-paren">(</span><em>wave</em>, <em>flux</em>, <em>flux_err</em>, <em>model_flux</em>, <em>band_start</em>, <em>band_end</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.band_chisq" title="Permalink to this definition">¶</a></dt>
+<dt id="analysis.spectra_chisq.calc_chisq">
+<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">calc_chisq</code><span class="sig-paren">(</span><em>wave</em>, <em>flux</em>, <em>flux_err</em>, <em>model_flux</em>, <em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.calc_chisq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the chi-squared for a spectrum within a wavelength range</p>
+<p>Calculation includes boundary wavelengths.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -220,8 +196,8 @@ An array of error values for the color warped fluxes</p>
 <li><strong>flux</strong> (<em>ndarray</em>) – An array of flux values</li>
 <li><strong>flux_err</strong> (<em>ndarray</em>) – An array of error values for <code class="docutils literal notranslate"><span class="pre">flux</span></code></li>
 <li><strong>model_flux</strong> (<em>ndarray</em>) – An array of model flux values</li>
-<li><strong>band_start</strong> (<em>float</em>) – The starting wavelength for the band</li>
-<li><strong>band_end</strong> (<em>float</em>) – The ending wavelength for the band</li>
+<li><strong>start</strong> (<em>float</em>) – The starting wavelength for the band</li>
+<li><strong>end</strong> (<em>float</em>) – The ending wavelength for the band</li>
 </ul>
 </td>
 </tr>
@@ -233,9 +209,17 @@ An array of error values for the color warped fluxes</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="analysis.spectra_chisq.tabulate_chi_squared">
-<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">tabulate_chi_squared</code><span class="sig-paren">(</span><em>data_release</em>, <em>models</em>, <em>bands</em>, <em>out_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.tabulate_chi_squared" title="Permalink to this definition">¶</a></dt>
-<dd><p>Tabulate chi-squared values for spectroscopic observations</p>
+<dt id="analysis.spectra_chisq.tabulate_chisq">
+<code class="descclassname">analysis.spectra_chisq.</code><code class="descname">tabulate_chisq</code><span class="sig-paren">(</span><em>data_release</em>, <em>models</em>, <em>err_estimate=0.03</em>, <em>features=None</em>, <em>bands=None</em>, <em>trans_limit=0.1</em>, <em>out_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.tabulate_chisq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tabulate band specific chi-squared values for spectroscopic observations</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">bands</span></code> and <code class="docutils literal notranslate"><span class="pre">trans_limit</span></code> are given then the chi-squared is
+determined per band  over the wavelength range where the
+transmission is above <code class="docutils literal notranslate"><span class="pre">trans_limit</span></code>. Specifying <code class="docutils literal notranslate"><span class="pre">bands</span> <span class="pre">=</span> <span class="pre">'all'</span></code>
+will calculate the chi-squared for the entire spectrum.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">features</span></code> is given, then the chi-squared is determined per feature.
+See <code class="docutils literal notranslate"><span class="pre">analysis.equivalent_width.features</span></code> for an example.</p>
+<p>Error in the flux is assumed to be a fraction of the observed flux.
+Defaults assume a 3% error in observed spectra.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -243,7 +227,10 @@ An array of error values for the color warped fluxes</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>data_release</strong> (<em>module</em>) – An sndata data release</li>
 <li><strong>models</strong> (<em>list</em>) – List of sncosmo models</li>
+<li><strong>err_estimate</strong> (<em>float</em>) – Error estimate for spectra as fraction of flux</li>
 <li><strong>bands</strong> (<em>list</em>) – A list of band names</li>
+<li><strong>trans_limit</strong> (<em>float</em>) – Transmission limit for defining band wave range</li>
+<li><strong>features</strong> (<em>dict</em>) – Dictionary of feature names and meta data</li>
 <li><strong>out_path</strong> (<em>str</em>) – Optionally write results to file</li>
 </ul>
 </td>
@@ -264,6 +251,8 @@ An array of error values for the color warped fluxes</p>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="exceptions.html" class="btn btn-neutral float-right" title="analysis.exceptions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lc_colors.html" class="btn btn-neutral float-left" title="analysis.lc_colors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

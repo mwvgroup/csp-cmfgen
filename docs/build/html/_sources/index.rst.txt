@@ -29,3 +29,4 @@ data, particularly with upcoming surveys like LSST.
    api_ref/equivalent_width
    api_ref/lc_colors
    api_ref/spectra_chisq
+   api_ref/exceptions
