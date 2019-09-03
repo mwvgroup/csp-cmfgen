@@ -45,7 +45,9 @@ def band_limits(band_name, trans_limit):
 def calc_chisq(wave, flux, flux_err, model_flux, start, end):
     """Calculate the chi-squared for a spectrum within a wavelength range
 
-    Calculation includes boundary wavelengths.
+    Chi-squared summation includes boundary wavelengths. No assumption
+    is made in the units of the calculation except that flux, flux_err,
+    and model_flux all have the same units.
 
     Args:
         wave       (ndarray): An array of wavelengths
