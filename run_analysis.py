@@ -1,8 +1,3 @@
-#!/usr/bin/env python3.7
-# -*- coding: UTF-8 -*-
-
-"""Command line interface for the analysis package."""
-
 import argparse
 import warnings
 from pathlib import Path
@@ -14,6 +9,7 @@ from tqdm import tqdm
 from analysis import equivalent_width
 from analysis import lc_colors
 from analysis import models
+from analysis import spectra_chisq
 
 warnings.filterwarnings('ignore')
 models.register_sources()
@@ -40,12 +36,9 @@ BAND_COMBOS = [
 
 def get_models(model_id_list):
     """Return a list of models corresponding to a list of model ids
-
     Model ids should be of the form ``<source name>,<source version>
-
     Args:
         model_id_list (list): A list of model ids
-
     Returns:
         A list of sncosmo Models
     """
@@ -62,7 +55,6 @@ def get_models(model_id_list):
 
 def run_color_15(cli_args):
     """Tabulate change in color over 15 days
-
     Args:
         cli_args (Namespace): Command line arguments
     """
@@ -75,13 +67,12 @@ def run_color_15(cli_args):
         models=get_models(cli_args.models),
         band_combos=BAND_COMBOS,
         out_path=out_dir / f'delta_c_15.ecsv')
-    
+
     tqdm.write('\n')
 
 
 def run_color_chisq(cli_args):
     """Tabulate chi-squares for color evolution
-
     Args:
         cli_args (Namespace): Command line arguments
     """
@@ -110,7 +101,6 @@ def run_color_chisq(cli_args):
 
 def run_ew(cli_args):
     """Run equivalent width analysis
-
     Args:
         cli_args (Namespace): Command line arguments
     """
@@ -137,11 +127,40 @@ def run_ew(cli_args):
     tqdm.write('\n')
 
 
+def run_spec_chisq(cli_args):
+    """Calculate chi-squared for spectra
+
+    Args:
+        cli_args (argparse.Namespace): Command line arguments
+    """
+
+    out_dir = Path(cli_args.out_dir) / 'spec_chisq'
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    file_name = 'bands.ecsv'
+    if cli_args.features is not None:
+        file_name = 'features.ecsv'
+        cli_args.features = \
+            {f: equivalent_width.features[f] for f in cli_args.features}
+
+    tqdm.write('Calculating chi-squared for spectra')
+    spectra_chisq.tabulate_chisq(
+        data_release=dr1,
+        bands=cli_args.bands,
+        features=cli_args.features,
+        models=get_models(cli_args.models),
+        err_estimate=cli_args.err_estimate,
+        trans_limit=cli_args.trans_limit,
+        out_path=out_dir / file_name
+    )
+    tqdm.write('\n')
+
+
 def create_parser():
-    """Create an command line parser
+    """Create a command line argument parser
 
     Returns:
-        An argparse command line parser
+        An ``argparse.ArgumentParser`` object
     """
 
     parser = argparse.ArgumentParser(
@@ -203,11 +222,42 @@ def create_parser():
         type=int,
         help='Fix feature boundaries to observed values')
 
+    spec_chisq_parser = subparsers.add_parser(
+        'spec_chisq', help='Calculate chi-squared for spectra')
+
+    spec_chisq_parser.set_defaults(func=run_spec_chisq)
+
+    spec_chisq_parser.add_argument(
+        '-e', '--err_estimate',
+        type=float,
+        default=.03,
+        help='Error estimate as a fraction of the flux')
+
+    spec_chisq_parser.add_argument(
+        '-f', '--features',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Features to tabulate chi-squared for.')
+
+    spec_chisq_parser.add_argument(
+        '-b', '--bands',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Bands to tabulate chi-squared for.')
+
+    spec_chisq_parser.add_argument(
+        '-t', '--trans_limit',
+        type=float,
+        default=.1,
+        help='Transmission cutoff applied to each band')
+
     return parser
 
 
-# Parse command line input
 if __name__ == '__main__':
+    # Parse command line input
     parser = create_parser()
     cli_args = parser.parse_args()
     cli_args.func(cli_args)

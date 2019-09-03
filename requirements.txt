@@ -10,3 +10,7 @@ tqdm
 iminuit
 sndata>=0.5.1
 pyyaml
+
+# For documentation building
+sphinx
+sphinx-argparse

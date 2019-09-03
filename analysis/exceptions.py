@@ -3,9 +3,11 @@
 
 """Custom exception classes."""
 
+__all__ = ['NoCSPData', 'UnobservedFeature']
+
 
 class NoCSPData(Exception):
-    """There is either no CSP published t0 or E(B - V) value for this target"""
+    """There is no CSP published t0 or E(B - V) value for this target"""
     pass
 
 

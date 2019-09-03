@@ -249,9 +249,7 @@ def tabulate_pew_spectra(
             position=1,
             total=len(time))
 
-        pew_table = vstack(
-            [tabulate_pew_spectrum(*s, models, fix_boundaries) for s in
-             spectra_iter])
+        pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra_iter])
         pew_table['obj_id'] = data_table.meta['obj_id']
         pew_data.append(pew_table)
 

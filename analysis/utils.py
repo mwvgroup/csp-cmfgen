@@ -38,8 +38,8 @@ def convert_to_jd(date):
         The time value in JD format
     """
 
-    snoopy_offset = 53000
-    mjd_offset = 2400000.5
+    snoopy_offset = 53000  # Snoopy date format is MDJ minus 53000
+    mjd_offset = 2400000.5  # MJD date format is JD minus 2400000.5
     date_format = 'mjd'
 
     if date < snoopy_offset:
@@ -78,65 +78,13 @@ def filter_has_csp_data(data_table):
         return True
 
 
-class NoCSPData(Exception):
-    pass
-
-
-def filter_has_csp_data(data_table):
-    """A filter function for an SNData table iterator
-
-    Returns whether the object ID associated with a data table has an
-    available t0 and E(B - V) value.
-
-    Args:
-        data_table (Table): A table from sndata
-
-    Returns:
-        A boolean
-    """
-
-    obj_id = data_table.meta['obj_id']
-    try:
-        get_csp_t0(obj_id)
-        get_csp_ebv(obj_id)
-
-    except NoCSPData:
-        return False
-
-    else:
-        return True
-
-
-@np.vectorize
-def convert_to_jd(time):
-    """Convert MJD and Snoopy dates into JD
-
-    Args:
-        time (float): Time stamp in JD, MJD, or Snoopy format
-
-    Returns:
-        The time value in JD format
-    """
-
-    # Snoopy time format
-    if time < 53000:
-        return time + 53000 + 2400000.5
-
-    # Snoopy time format
-    elif 53000 < time < 2400000.5:
-        return time + 2400000.5
-
-    else:
-        return time
-
-
 def get_csp_t0(obj_id):
     """Get the t0 value published by CSP DR3 for a given object
 
     Args:
         obj_id (str): The object Id value
 
-    Return:
+    Returns:
         The published MJD of maximum minus 53000
     """
 
@@ -155,7 +103,7 @@ def get_csp_ebv(obj_id):
     Args:
         obj_id (str): The object Id value
 
-    Return:
+    Returns:
         The published E(B - V) value
     """
 

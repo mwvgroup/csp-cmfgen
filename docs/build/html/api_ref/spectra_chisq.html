@@ -83,6 +83,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface</a></li>
 </ul>
 <p class="caption"><span class="caption-text">API Reference:</span></p>
 <ul class="current">
@@ -186,7 +187,9 @@ spectra.</p>
 <dt id="analysis.spectra_chisq.calc_chisq">
 <code class="descclassname">analysis.spectra_chisq.</code><code class="descname">calc_chisq</code><span class="sig-paren">(</span><em>wave</em>, <em>flux</em>, <em>flux_err</em>, <em>model_flux</em>, <em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="headerlink" href="#analysis.spectra_chisq.calc_chisq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the chi-squared for a spectrum within a wavelength range</p>
-<p>Calculation includes boundary wavelengths.</p>
+<p>Chi-squared summation includes boundary wavelengths. No assumption
+is made in the units of the calculation except that flux, flux_err,
+and model_flux all have the same units.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
