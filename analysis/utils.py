@@ -38,8 +38,8 @@ def convert_to_jd(date):
         The time value in JD format
     """
 
-    snoopy_offset = 53000
-    mjd_offset = 2400000.5
+    snoopy_offset = 53000  # Snoopy date format is MDJ minus 53000
+    mjd_offset = 2400000.5  # MJD date format is JD minus 2400000.5
     date_format = 'mjd'
 
     if date < snoopy_offset:
@@ -76,29 +76,6 @@ def filter_has_csp_data(data_table):
 
     else:
         return True
-
-
-@np.vectorize
-def convert_to_jd(time):
-    """Convert MJD and Snoopy dates into JD
-
-    Args:
-        time (float): Time stamp in JD, MJD, or Snoopy format
-
-    Returns:
-        The time value in JD format
-    """
-
-    # Snoopy time format
-    if time < 53000:
-        return time + 53000 + 2400000.5
-
-    # Snoopy time format
-    elif 53000 < time < 2400000.5:
-        return time + 2400000.5
-
-    else:
-        return time
 
 
 def get_csp_t0(obj_id):
