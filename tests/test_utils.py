@@ -32,7 +32,7 @@ class TestEffectiveWavelength(TestCase):
 
 
 class TestGetCSPt0(TestCase):
-    """Test that ``get_csp_t0`` returns the correct value / error"""
+    """Test that ``get_csp_t0`` returns the correct value"""
 
     def test_bad_ids(self):
         """Test the correct error is raised for fake ids and masked values"""
@@ -44,7 +44,7 @@ class TestGetCSPt0(TestCase):
         """Test the correct value is returned for a known target"""
 
         returned_val = utils.get_csp_t0('2005kc')
-        expected_val = 53697.61
+        expected_val = 2453698.11
         self.assertEquals(expected_val, returned_val)
 
 

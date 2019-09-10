@@ -10,9 +10,10 @@ from pathlib import Path
 import numpy as np
 import yaml
 from astropy.table import Table, vstack
+from tqdm import tqdm
 
+from .. import utils
 from ..exceptions import NoCSPData, UnobservedFeature
-from ..utils import get_csp_ebv, get_csp_t0, make_pbar, parse_spectra_table
 
 with open(Path(__file__).parent / 'features.yml') as infile:
     FEATURES = yaml.load(infile, Loader=yaml.FullLoader)
@@ -158,11 +159,11 @@ def create_pew_summary_table(models):
     return out_table
 
 
-def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
+def tabulate_pew_spectrum(phase, wave, flux, models=(), fix_boundaries=True):
     """Tabulate the observed and modeled pew for multiple features
 
     Args:
-        time          (float): The time of the observed spectrum
+        phase         (float): The phase of the observed spectrum
         wave        (ndarray): An array of wavelength values
         flux        (ndarray): An array of flux values
         models         (list): A list of sncosmo models
@@ -173,7 +174,7 @@ def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
     """
 
     out_table = create_pew_summary_table(models)
-    out_table['time'] = time
+    out_table['phase'] = phase
 
     for feat_name, feature in FEATURES.items():
         # Calculate pew for observed data
@@ -193,7 +194,7 @@ def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
             # Shift time to beginning of explosion
             t0 = model.source.peakphase('csp_dr3_B')
             model_pew_results = calc_pew(
-                wave, model.flux(time - t0, wave), feature, feat_start,
+                wave, model.flux(t0 + phase, wave), feature, feat_start,
                 feat_end)
 
             pew_data.append(model_pew_results)
@@ -207,47 +208,43 @@ def tabulate_pew_spectrum(time, wave, flux, models=(), fix_boundaries=True):
 
 
 def tabulate_pew_spectra(
-        data_release, models=(), fix_boundaries=True, verbose=True):
+        data_release, models=(), fix_boundaries=True):
     """Tabulate the pseudo equivalent widths for multiple spectra / features
 
     Args:
         data_release (module): An sndata data release
         models         (list): A list of sncosmo models
         fix_boundaries (bool): Fix feature boundaries to observed values
-        verbose        (bool): Whether to display a progress bar
 
     Returns:
        A table of equivalent widths over time
     """
 
     pew_data = []
-    total_targets = len(data_release.get_available_ids())
-    id_iter = make_pbar(
-        iterable=data_release.get_available_ids(),
-        verbose=verbose,
+    id_iter = tqdm(
+        data_release.get_available_ids(),
         desc='Targets',
-        total=total_targets)
+        total=len(data_release.get_available_ids()))
 
     for obj_id in id_iter:
         data_table = data_release.get_data_for_id(obj_id)
-        time, wavelength, flux = parse_spectra_table(data_table)
+        time, wavelength, flux = utils.parse_spectra_table(data_table)
 
         try:
             for model in models:
-                model.set(extebv=get_csp_ebv(obj_id))
+                model.set(extebv=utils.get_csp_ebv(obj_id))
 
             # Shift observed time to B-band peak
-            time -= get_csp_t0(obj_id)
+            phase = time - utils.get_csp_t0(obj_id)
 
         except NoCSPData:
             continue
 
-        spectra_iter = make_pbar(
-            iterable=zip(time, wavelength, flux),
-            verbose=verbose,
+        spectra_iter = tqdm(
+            iterable=zip(phase, wavelength, flux),
             desc='Spectra',
             position=1,
-            total=len(time))
+            total=len(phase))
 
         pew_table = vstack([tabulate_pew_spectrum(*s, models, fix_boundaries) for s in spectra_iter])
         pew_table['obj_id'] = data_table.meta['obj_id']
@@ -272,10 +269,10 @@ def tabulate_peak_model_pew(models):
     for feat_name, feature in FEATURES.items():
         pew_data = []
         for model in models:
-            time = model.source.peakphase('csp_dr3_B')
+            t0 = model.source.peakphase('csp_dr3_B')
             wave = model.source.interpolated_model()[1]
             wave = wave[(wave > 3000) & (wave < 10000)]
-            model_pew_results = calc_pew(wave, model.flux(time, wave), feature)
+            model_pew_results = calc_pew(wave, model.flux(t0, wave), feature)
             pew_data.append(model_pew_results)
 
         new_columns = np.transpose(pew_data)

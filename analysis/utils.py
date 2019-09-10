@@ -7,7 +7,6 @@ import numpy as np
 import sncosmo
 from astropy.time import Time
 from sndata.csp import dr1, dr3
-from tqdm import tqdm
 
 from .exceptions import NoCSPData
 
@@ -94,7 +93,8 @@ def get_csp_t0(obj_id):
     if obj_id not in params['SN']:
         raise NoCSPData(f'No published t0 for {obj_id}')
 
-    return params[params['SN'] == obj_id]['T(Bmax)'][0]
+    t0 = params[params['SN'] == obj_id]['T(Bmax)'][0]
+    return convert_to_jd(t0)
 
 
 def get_csp_ebv(obj_id):
@@ -114,25 +114,6 @@ def get_csp_ebv(obj_id):
 
     data_for_target = extinction_table[extinction_table['SN'] == obj_id]
     return data_for_target['E(B-V)'][0]
-
-
-def make_pbar(iterable, verbose, **kwargs):
-    """A wrapper for tqdm.tqdm
-
-    Args:
-        iterable (iterator): Data to iterate over
-        verbose      (bool): Whether to display the progress bar
-        Any other arguments for tqdm.tqdm
-
-    Returns:
-        An iterable
-    """
-
-    if verbose:
-        return tqdm(iterable, **kwargs)
-
-    else:
-        return iterable
 
 
 def get_effective_wavelength(band_name):
@@ -171,5 +152,4 @@ def parse_spectra_table(data):
         wavelength.append(data_for_date['wavelength'])
         flux.append(data_for_date['flux'])
 
-    obs_dates = np.array(obs_dates)
-    return obs_dates, np.array(wavelength), np.array(flux)
+    return convert_to_jd(obs_dates), np.array(wavelength), np.array(flux)

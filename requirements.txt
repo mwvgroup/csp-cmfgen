@@ -8,7 +8,7 @@ scipy
 sncosmo
 tqdm
 iminuit
-sndata>=0.5.1
+sndata>=0.6.0
 pyyaml
 
 # For documentation building

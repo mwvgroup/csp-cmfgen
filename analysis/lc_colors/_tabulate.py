@@ -153,13 +153,13 @@ def tabulate_chisq(data_release, models, band_combos, interval=1,
             model = deepcopy(model)
             obj_id = data_table.meta['obj_id']
             z = data_table.meta['redshift']
-            t0 = utils.convert_to_jd(utils.get_csp_t0(obj_id))
+            t0 = utils.get_csp_t0(obj_id)
             ebv = utils.get_csp_ebv(obj_id)
             model.set(t0=t0, z=z, extebv=ebv)
 
             # Shift observed times to be relative to t0
             data_table = deepcopy(data_table)
-            data_table['time'] = utils.convert_to_jd(data_table['time']) - t0
+            data_table['time'] = data_table['time'] - t0
 
             # Populate output table
             new_row, mask = create_new_chisq_row(
@@ -195,8 +195,8 @@ def tabulate_delta_15(
     for data_table in data_iter:
         # Convert observation times to phase values
         obj_id = data_table.meta['obj_id']
-        t0 = utils.convert_to_jd(utils.get_csp_t0(obj_id))
-        data_table['time'] = utils.convert_to_jd(data_table['time']) - t0
+        t0 = utils.get_csp_t0(obj_id)
+        data_table['time'] = data_table['time'] - t0
         gp = fit_gaussian_process(data_table)
 
         new_row = [obj_id, 'CSP', 'DR3']
