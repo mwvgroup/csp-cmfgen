@@ -8,6 +8,7 @@ from astropy import units as u
 from astropy.table import Column, join, QTable, Table, unique, vstack
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import sys
 
 import sncosmo
@@ -51,15 +52,17 @@ def tabulate_synthetic_photometry(spec_data):
         for date in set(spec_data['date']):
             spectrum = spec_data[spec_data['date'] == date]
             transmission = sncosmo.get_bandpass(band)(spectrum['wavelength'])
+            print('transmission', transmission)
             # Convert flux per wavelength to flux per frequency: F_freq = jacobian * F_wave
             jacobian = (spectrum['wavelength'] ** 2) / const.c 
             f_freq = spectrum['flux'] * jacobian
             # Integrate to get synthetic flux
-            #band_flux = np.sum(f_freq * transmission)
-            band_flux = np.trapz(f_freq, spectrum['wavelength']/u.angstrom)
+            band_flux = np.sum(f_freq * transmission)
+            # band_flux = np.trapz(f_freq * transmission, spectrum['wavelength']/u.angstrom)
             if band_flux > 0:
                 mag = -2.5 * np.log10(band_flux.to(u.jansky).value) + 8.9 # 8.9 is zp
                 out_table.add_row([obj_id, date, band, mag])
+                print(mag)
                 
     return out_table
 
@@ -185,12 +188,15 @@ def make_table():
     # Create output table
     tbl = join(synthetic_photo_table, photo_table, join_type='left')
     # TODO display filename at prompt?
-    ans = input('Overwrite joint table? (y/n)')
+    # pathname = os.path.join('..', '..', 'csp', 'test_output_data')
+    # fn = os.path.join(pathname, 'comparision.fsits')
+    fn = '../../csp/test_output_data/photo_comp.fits'
+    ans = input('Overwrite joint table {}? (y/n)'.format(fn))
     if ans == 'y':
-        tbl.write('../../../../comp.fits', overwrite=True)
+        tbl.write(fn, overwrite=True)
     if ans == 'n':
-        # TODO also input path?
-        fn = input('New filename (ex: table_name) :')
-        tbl.write('../../../../{}.fits'.format(fn))
-    
+        fn_end = input('New filename:')
+        fn = '../../csp/test_output_data/{}.fits'.format(fn_end)
+        tbl.write(fn)
+    print(fn)
     return None
