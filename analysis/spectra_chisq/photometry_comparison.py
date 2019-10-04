@@ -13,7 +13,7 @@ from astropy.table import Table, join, vstack
 from matplotlib import pyplot as plt
 from sndata.csp import dr1, dr3
 
-from .. import lc_colors
+from .. import lc_colors, utils
 
 major, minor, _ = sndata.__version__.split('.')
 if int(major) == 0 and int(minor) < 7:
@@ -80,36 +80,6 @@ def tabulate_synthetic_photometry(spec_data, err_ratio=.03):
     return out_table
 
 
-# Todo: Move into utils.py
-def mag_to_flux(mag, zp):
-    """Convert magnitude to flux (F_nu).
-
-    Args:
-        mag (float): AB magnitude
-        zp  (float): Zero point of band
-
-    Returns:
-        Flux relative to the given zero point
-    """
-
-    return 10 ** ((mag - zp) / -2.5)
-
-
-# Todo: Move into utils.py
-def flux_to_mag(flux, zp):
-    """Converts flux (F_nu) to magnitude.
-
-    Args:
-        flux (float): F_nu; flux per frequency.
-        zp   (float): Zero point of band
-
-    Returns:
-        The AB magnitude
-    """
-
-    return -2.5 * np.log10(flux) + zp
-
-
 def photometry_to_spectra_time(spec_data):
     """Regress photometry (CSP DR3) to the time of spectroscopic observations
 
@@ -148,7 +118,7 @@ def photometry_to_spectra_time(spec_data):
 
                 # Convert flux to magnitude
                 zp = sndata.get_zp(band_name=band)
-                pred_mag = flux_to_mag(flux=pred_flux, zp=zp)
+                pred_mag = utils.flux_to_mag(flux=pred_flux, zp=zp)
 
                 for i, mag in enumerate(pred_mag):
                     out_table.add_row([obj_id, spec_times[i], band, mag])
@@ -165,7 +135,8 @@ def make_table():
     """
 
     # Get synthetic photometry for all spectroscopic data
-    tables = [tabulate_synthetic_photometry(data) for data in dr1.iter_data(verbose=True)]
+    tables = [tabulate_synthetic_photometry(data) for data in
+              dr1.iter_data(verbose=True)]
     synthetic_photo_table = vstack(tables)
 
     # Regress all photometric data
@@ -213,7 +184,7 @@ def plot_synthetic_results(observed, synthetic):
 
         axis.scatter(
             obj_band_data['time'],
-            flux_to_mag(obj_band_data['flux'], sndata.get_zp(band)),
+            utils.flux_to_mag(obj_band_data['flux'], sndata.get_zp(band)),
             label='',
             c=f'C{i}',
             s=5
@@ -221,7 +192,7 @@ def plot_synthetic_results(observed, synthetic):
 
         axis.plot(
             obj_band_data['time'],
-            flux_to_mag(obj_band_data['flux'], sndata.get_zp(band)),
+            utils.flux_to_mag(obj_band_data['flux'], sndata.get_zp(band)),
             c=f'C{i}',
             linestyle='--',
             label=''

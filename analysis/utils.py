@@ -12,6 +12,34 @@ from tqdm import tqdm
 from .exceptions import NoCSPData
 
 
+def mag_to_flux(mag, zp):
+    """Convert magnitude to flux (F_nu).
+
+    Args:
+        mag (float): AB magnitude
+        zp  (float): Zero point of band
+
+    Returns:
+        Flux relative to the given zero point
+    """
+
+    return 10 ** ((mag - zp) / -2.5)
+
+
+def flux_to_mag(flux, zp):
+    """Converts flux (F_nu) to magnitude.
+
+    Args:
+        flux (float): F_nu; flux per frequency.
+        zp   (float): Zero point of band
+
+    Returns:
+        The AB magnitude
+    """
+
+    return -2.5 * np.log10(flux) + zp
+
+
 def chisq(data, error, model):
     """Calculate chi-squared
 
