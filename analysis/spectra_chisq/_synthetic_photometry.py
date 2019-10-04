@@ -11,7 +11,6 @@ import sncosmo
 import sndata
 from astropy.table import Table, join, vstack
 from matplotlib import pyplot as plt
-from sndata.csp import dr1, dr3
 
 from .. import lc_colors, utils
 
@@ -20,10 +19,7 @@ if int(major) == 0 and int(minor) < 7:
     raise RuntimeError('Update to sndata 0.7.0 or higher')
 
 
-# Todo: Write tests for the functions in this module
-
-
-def tabulate_synthetic_photometry(spec_data, err_ratio=.03):
+def calc_synthetic_phot(spec_data, bands, err_ratio=.03):
     """Get synthetic magnitude in dr3 band passes for a table of spectra
 
     Output table columns:
@@ -35,6 +31,7 @@ def tabulate_synthetic_photometry(spec_data, err_ratio=.03):
     
     Args:
         spec_data (Table): Table of spectroscopic data from sndata
+        bands (list[str]): The name of the bands to tabulate photometry for
         err_ratio (float): The fraction of the flux to take as the error
 
     Returns:
@@ -52,7 +49,7 @@ def tabulate_synthetic_photometry(spec_data, err_ratio=.03):
     spec_data['fluxerr'] = err_ratio * spec_data['flux']
     obj_id = spec_data.meta['obj_id']
 
-    for band in dr3.band_names:
+    for band in bands:
         for date in set(spec_data['date']):
             nrepeat = 5
             spectrum = spec_data[spec_data['date'] == date]
@@ -80,7 +77,7 @@ def tabulate_synthetic_photometry(spec_data, err_ratio=.03):
     return out_table
 
 
-def photometry_to_spectra_time(spec_data):
+def _photometry_to_spectra_time(spec_data, phot_release):
     """Regress photometry (CSP DR3) to the time of spectroscopic observations
 
     See ``tabulate_synthetic_photo()`` for the expected data model of
@@ -101,18 +98,18 @@ def photometry_to_spectra_time(spec_data):
     for obj_id in set(spec_data['obj_id']):
         # Get spectroscopic and photometric data for particular object ID
         id_spec_data = spec_data[spec_data['obj_id'] == obj_id]
-        id_photo_data = dr3.get_data_for_id(obj_id)
+        id_photo_data = phot_release.get_data_for_id(obj_id)
 
         # Fit photometric data with a gaussian process
         gauss_process = lc_colors.fit_gaussian_process(data=id_photo_data)
 
-        for band in dr3.band_names:
+        for band in phot_release.band_names:
 
             # Get times of spectra obs
             spec_times = id_spec_data[id_spec_data['band'] == band]['date']
 
             if band in id_photo_data['band']:
-                # Predict photometric data at the spectra times for specific band
+                # Interpolate band data to the spectral times
                 pred_flux, pred_flux_err = lc_colors.predict_band_flux(
                     gp=gauss_process, band_name=band, times=spec_times)
 
@@ -129,37 +126,38 @@ def photometry_to_spectra_time(spec_data):
     return out_table
 
 
-# Todo: connect this to the existing Command Line Interface
-def make_table():
-    """Create photometry comparison table
+def tabulate_synthetic_photometry(
+        spec_release, phot_release, err_ratio=0.3, out_path=None):
+    """Tabulates synthetic and observed photometry
+
+    Observed photometry is interpolated to spectral times using a gausian
+    regression.
+
+    Args:
+        spec_release (module): An spectroscopic data release from sndata
+        phot_release (module): A photometric data release from sndata
+        out_path        (str): Optionally write results to file
+
+    Returns:
+        A Table of synthetic and observed photometry
     """
 
     # Get synthetic photometry for all spectroscopic data
-    tables = [tabulate_synthetic_photometry(data) for data in
-              dr1.iter_data(verbose=True)]
-    synthetic_photo_table = vstack(tables)
+    spec_data = spec_release.iter_data(verbose=True)
+    bands = phot_release.band_names
+    tables = [calc_synthetic_phot(tbl, bands, err_ratio) for tbl in spec_data]
+    synthetic_photometry = vstack(tables)
 
     # Regress all photometric data
-    photo_table = photometry_to_spectra_time(spec_data=synthetic_photo_table)
+    obs_photometry = _photometry_to_spectra_time(
+        synthetic_photometry, phot_release)
 
     # Create output table
-    tbl = join(synthetic_photo_table, photo_table, join_type='left')
+    combined = join(synthetic_photometry, obs_photometry, join_type='left')
+    if out_path:
+        combined.write(out_path, overwrite=True)
 
-    # TODO display filename at prompt?
-    # pathname = os.path.join('..', '..', 'csp', 'test_output_data')
-    # fn = os.path.join(pathname, 'comparision.fsits')
-    fn = '../../csp/test_output_data/photo_comp.fits'
-    ans = input('Overwrite joint table {}? (y/n)'.format(fn))
-    if ans == 'y':
-        tbl.write(fn, overwrite=True)
-
-    if ans == 'n':
-        fn_end = input('New filename:')
-        fn = '../../csp/test_output_data/{}.fits'.format(fn_end)
-        tbl.write(fn)
-
-    print(fn)
-    return None
+    return combined
 
 
 # Todo: Move into a jupyter notebook

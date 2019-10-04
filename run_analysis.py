@@ -149,10 +149,26 @@ def run_spec_chisq(cli_args):
         bands=cli_args.bands,
         features=cli_args.features,
         models=get_models(cli_args.models),
-        err_estimate=cli_args.err_estimate,
+        err_estimate=cli_args.err_ratio,
         trans_limit=cli_args.trans_limit,
         out_path=out_dir / file_name
     )
+    tqdm.write('\n')
+
+
+def run_synthetic_photometry(cli_args):
+    """Tabulate synthetic photometry
+
+    Args:
+        cli_args (argparse.Namespace): Command line arguments
+    """
+
+    out_path = Path(cli_args.out_dir) / 'synth_phot.ecsv'
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tqdm.write('Tabulating synthetic photometry')
+    spectra_chisq.tabulate_synthetic_photometry(
+        dr1, dr3, cli_args.err_ratio, out_path)
+
     tqdm.write('\n')
 
 
@@ -228,7 +244,7 @@ def create_parser():
     spec_chisq_parser.set_defaults(func=run_spec_chisq)
 
     spec_chisq_parser.add_argument(
-        '-e', '--err_estimate',
+        '-e', '--err_ratio',
         type=float,
         default=.03,
         help='Error estimate as a fraction of the flux')
@@ -252,6 +268,17 @@ def create_parser():
         type=float,
         default=.1,
         help='Transmission cutoff applied to each band')
+
+    synth_phot_parser = subparsers.add_parser(
+        'synth_phot', help='Tabulate synthetic photometry')
+
+    synth_phot_parser.set_defaults(func=run_synthetic_photometry)
+
+    synth_phot_parser.add_argument(
+        '-e', '--err_ratio',
+        type=float,
+        default=.03,
+        help='Error estimate as a fraction of the flux')
 
     return parser
 
