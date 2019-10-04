@@ -184,13 +184,6 @@ def create_parser():
     subparsers = parser.add_subparsers(help='')
 
     parser.add_argument(
-        '-m', '--models',
-        type=str,
-        nargs='+',
-        required=True,
-        help='Models to use')
-
-    parser.add_argument(
         '-o', '--out_dir',
         type=str,
         default=['./'],
@@ -201,6 +194,13 @@ def create_parser():
         'color_chisq', help='Compare color evolution with models.')
 
     color_chisq_parser.set_defaults(func=run_color_chisq)
+    color_chisq_parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
+
     color_chisq_parser.add_argument(
         '-i', '--interval',
         default=1,
@@ -223,6 +223,13 @@ def create_parser():
 
     color_15_parser.set_defaults(func=run_color_15)
     color_15_parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
+
+    color_15_parser.add_argument(
         '-b', '--t0_band',
         type=str,
         help='Band to use when setting model t0 to peak')
@@ -233,6 +240,13 @@ def create_parser():
 
     ew_parser.set_defaults(func=run_ew)
     ew_parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
+
+    ew_parser.add_argument(
         '-b', '--fix_boundaries',
         required=True,
         type=int,
@@ -242,6 +256,12 @@ def create_parser():
         'spec_chisq', help='Calculate chi-squared for spectra')
 
     spec_chisq_parser.set_defaults(func=run_spec_chisq)
+    spec_chisq_parser.add_argument(
+        '-m', '--models',
+        type=str,
+        nargs='+',
+        required=True,
+        help='Models to use')
 
     spec_chisq_parser.add_argument(
         '-e', '--err_ratio',
