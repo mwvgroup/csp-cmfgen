@@ -1,7 +1,7 @@
-"""Create table with synthetic magnitudes and regressed magnitudes.
+"""The ``_synthetic_photometry`` module creates a table with synthetic magnitudes and regressed magnitudes.
 
-See Figure 2 of Folatelli et al 2013: Spectroscopy of Type 1a Supernova by
-the Carnegie Supernova Project.
+Synthetic magnitudes are calculated using CSP R1 spectra (flux per wavelength; erg/s/cm^2/Angstrom).
+Photometric magnitudes (DR3) are regressed to the time of the spectra.
 
 Data release papers: https://sn-data.readthedocs.io/en/latest/module_docs/csp.html
 """
@@ -9,7 +9,9 @@ Data release papers: https://sn-data.readthedocs.io/en/latest/module_docs/csp.ht
 import numpy as np
 import sncosmo
 import sndata
-from astropy.table import Table, join, vstack
+from astropy import constants as const
+from astropy import units as u
+from astropy.table import join, QTable, Table, unique, vstack
 from matplotlib import pyplot as plt
 
 from .. import lc_colors, utils
@@ -19,60 +21,110 @@ if int(major) == 0 and int(minor) < 7:
     raise RuntimeError('Update to sndata 0.7.0 or higher')
 
 
-def calc_synthetic_phot(spec_data, bands, err_ratio=.03):
-    """Get synthetic magnitude in dr3 band passes for a table of spectra
+def calc_synthetic_ab_mag(wavelength, flux_per_wave, transmission, err_ratio=0.03):
+    """Calculate synthetic AB magnitude for a single spectra.
+
+    Synthetic AB magnitude calculated using Eq 6 of Casagrande & VandenBerg 2014
+    'Synthetic Stellar Photometry I. General considerations and new transformations for broad-band systems.'
+    arXiv:1407.6095v2
+
+    Args:
+        wavelength (1d array-like): Wavelengths at which flux is observed. CSP DR1 units are Angstrom. Units must be
+                                    consistent with `flux_per_wave`.
+        flux_per_wave (1d array-like): Flux per wavelength. Units: erg/s/cm^2/Angstrom if units for `wavelength` are
+                                        Angstrom.
+        transmission (1d array-like): Transmission function. Transmission at each `wavelength` for specific band. Unitless
+        err_ratio (float): The fraction of the flux to take as the error
+
+    Returns:
+        mag_ab (float): Synthetic AB magnitude
+    """
+
+    # Constant defined in Casagrande & VandenBerg 2014 (below Eq 4)
+    flux_freq0 = 3.631 * 10 ** -20 * u.erg / u.s / u.cm / u.cm / u.Hz  # erg/s/cm^2/Hz
+
+    # Add and test units
+    # TODO: remove units via .value?
+    if not wavelength.unit:
+        wavelength.unit = u.angstrom
+    if not flux_per_wave.unit:
+        flux_per_wave.unit = u.erg / u.s / u.cm / u.cm / u.angstrom
+
+    # Integrate dimension-full quantities (no errors about incompatible units)
+    # AB mag in Casagrande & VandenBerg 2014 (Eq 6)
+    numerator = np.trapz(wavelength * flux_per_wave * transmission, wavelength)
+    denominator = np.trapz(const.c.cgs * flux_freq0 * transmission / wavelength, wavelength)
+    mag_ab = -2.5 * np.log10(numerator / denominator)
+
+    # TODO propagate error in flux to magnitude error. Try with scipy?
+
+    # TODO handle blank cells
+
+    return mag_ab
+
+
+def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, err_ratio=0.03):
+    """Create table with synthetic flux and magnitude for a single obj_id.
 
     Output table columns:
         - obj_id
         - date
         - band
         - syn_mag
-        - err_msg
-    
+        - syn_flux (Jy), is flux per frequency
+        - err_msg TODO
+
     Args:
-        spec_data (Table): Table of spectroscopic data from sndata
+        spec_data (table): Table of spectroscopic data from sndata
         bands (list[str]): The name of the bands to tabulate photometry for
         err_ratio (float): The fraction of the flux to take as the error
+        zp_cgs (float): Zero point for AB magnitude with F_nu in cgs units.
+                        Given below Eq 4 of Casagrande & VandenBerg 2014
+        zp_jy (float): Zero point for AB magnitude with F_nu in units of Jy
 
     Returns:
-        An astropy Table synthetic photometry results
+        An astropy Table with synthetic photometry results
     """
 
     spec_data = spec_data.copy()
+
+    # Create quantity table to correctly handle squaring units
+    # http://docs.astropy.org/en/latest/table/mixin_columns.html#quantity-and-qtable
+    spec_data = QTable(spec_data)
+
+    # Create output table
     out_table = Table(
-        names=['obj_id', 'date', 'band', 'syn_mag', 'err_msg'],
-        dtype=['U100', float, 'U100', float, 'U1000'],
-        masked=True
+        names=['obj_id', 'date', 'band', 'synth_mag', 'synth_flux_Jy'],
+        dtype=['U100', float, 'U100', float, float]  # , masked=True # FIXME ?
     )
 
-    # Add appropriate units and assume flux error is 3% of flux
-    spec_data['fluxerr'] = err_ratio * spec_data['flux']
+    # Get SN object ID
     obj_id = spec_data.meta['obj_id']
 
+    # Add appropriate units if necessary
+    if not spec_data['wavelength'].unit:
+        spec_data["wavelength"].unit = u.angstrom
+    # 'flux' gives flux per wavelength, flux_lambda
+    if not spec_data['flux'].unit:
+        spec_data['flux'].unit = u.erg / u.s / u.cm / u.cm / u.angstrom
+
+    # Assume flux error
+    spec_data['fluxerr'] = err_ratio * spec_data['flux']
+
+    # Fill output table
     for band in bands:
         for date in set(spec_data['date']):
-            nrepeat = 5
+            # Get a single spectrum
             spectrum = spec_data[spec_data['date'] == date]
-            flux = np.atleast_2d(spectrum['flux'])
-
-            try:
-                # We create a dummy model that represents our spectrum and use
-                # it to determine the band magnitude
-                sncosmo_source = sncosmo.TimeSeriesSource(
-                    phase=np.linspace(-50., 50., nrepeat),
-                    wave=spectrum['wavelength'],
-                    flux=np.repeat(flux, nrepeat, axis=0)
-                )
-
-                sncmag = sncosmo.Model(sncosmo_source).bandmag(band, 'AB', 0)
-
-            except ValueError as e:
-                row = [obj_id, date, -99, -99, str(e).replace('\n', ' ')]
-                mask = [False, False, True, True, False]
-                out_table.add_row(row, mask=mask)
-                continue
-
-            out_table.add_row([obj_id, date, band, sncmag, ''])
+            # Get the transmission function for `band`
+            transmission = sncosmo.get_bandpass(band)(spectrum['wavelength'])
+            # Get synthetic AB magnitude
+            syn_mag = calc_synthetic_ab_mag(wavelength=spectrum['wavelength'], flux_per_wave=spectrum['flux'],
+                                            transmission=transmission)
+            # Convert magnitude to flux
+            syn_flux_per_freq = utils.mag_to_flux(mag=syn_mag, zp=zp_jy)  # units: Jy
+            # Add data to output table
+            out_table.add_row([obj_id, date, band, syn_mag, syn_flux_per_freq])
 
     return out_table
 
@@ -126,26 +178,27 @@ def _photometry_to_spectra_time(spec_data, phot_release):
     return out_table
 
 
-def tabulate_synthetic_photometry(
-        spec_release, phot_release, err_ratio=0.3, out_path=None):
+def tabulate_photometry(spec_release, phot_release, err_ratio=0.03, out_path=None):
     """Tabulates synthetic and observed photometry
 
-    Observed photometry is interpolated to spectral times using a gausian
+    Observed photometry is interpolated to spectral times using a gaussian
     regression.
 
     Args:
         spec_release (module): An spectroscopic data release from sndata
         phot_release (module): A photometric data release from sndata
         out_path        (str): Optionally write results to file
+        err_ratio (float): The fraction of the flux to take as the error
 
     Returns:
         A Table of synthetic and observed photometry
     """
 
     # Get synthetic photometry for all spectroscopic data
-    spec_data = spec_release.iter_data(verbose=True)
+    spec_data = spec_release.iter_data(verbose=True)  # FIXME is module sndata.csp.dr1
     bands = phot_release.band_names
-    tables = [calc_synthetic_phot(tbl, bands, err_ratio) for tbl in spec_data]
+    tables = [tabulate_synthetic_photometry(tbl, bands, err_ratio) for tbl in spec_data]
+    # tables = [calc_synthetic_phot(tbl, bands, err_ratio) for tbl in spec_data]
     synthetic_photometry = vstack(tables)
 
     # Regress all photometric data
@@ -198,7 +251,7 @@ def plot_synthetic_results(observed, synthetic):
 
         axis.scatter(
             syn_band_data['date'],
-            syn_band_data['syn_mag'],
+            syn_band_data['synth_mag'],
             c=f'C{i}',
             marker='s',
             label=band.split('_')[-1]

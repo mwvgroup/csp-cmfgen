@@ -8,11 +8,11 @@ spectra.
 """
 
 from ._chisq import band_limits, calc_chisq, tabulate_chisq
-from ._synthetic_photometry import tabulate_synthetic_photometry
+from ._synthetic_photometry import tabulate_photometry
 
 __all__ = [
     'band_limits',
     'calc_chisq',
     'tabulate_chisq',
-    'tabulate_synthetic_photometry'
+    'tabulate_photometry',
 ]

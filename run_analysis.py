@@ -166,7 +166,7 @@ def run_synthetic_photometry(cli_args):
     out_path = Path(cli_args.out_dir) / 'synth_phot.ecsv'
     out_path.parent.mkdir(parents=True, exist_ok=True)
     tqdm.write('Tabulating synthetic photometry')
-    spectra_chisq.tabulate_synthetic_photometry(
+    spectra_chisq.tabulate_photometry(
         dr1, dr3, cli_args.err_ratio, out_path)
 
     tqdm.write('\n')
