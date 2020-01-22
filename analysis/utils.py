@@ -84,7 +84,7 @@ def get_csp_t0(obj_id):
         obj_id (str): The object Id value
 
     Returns:
-        The published MJD of maximum minus 53000
+        The published date of maximum in JD format
     """
 
     dr3.download_module_data()
@@ -93,8 +93,9 @@ def get_csp_t0(obj_id):
     if obj_id not in params['SN']:
         raise NoCSPData(f'No published t0 for {obj_id}')
 
-    t0 = params[params['SN'] == obj_id]['T(Bmax)'][0]
-    return convert_to_jd(t0)
+    # Convert MJD to JD by adding a constant offset
+    return params[params['SN'] == obj_id]['T(Bmax)'][0] + 2400000.5
+
 
 
 def get_csp_ebv(obj_id):
