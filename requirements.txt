@@ -10,6 +10,7 @@ tqdm
 iminuit
 sndata>=0.6.0
 pyyaml
+sfdmap
 
 # For documentation building
 sphinx

@@ -3,13 +3,16 @@ import warnings
 from pathlib import Path
 
 import sncosmo
+import yaml
 from sndata.csp import dr1, dr3
 from tqdm import tqdm
 
-from analysis import equivalent_width
-from analysis import lc_colors
-from analysis import models
-from analysis import spectra_chisq
+from analysis import (
+    band_fitting,
+    equivalent_width,
+    lc_colors,
+    models,
+    spectra_chisq)
 
 warnings.filterwarnings('ignore')
 models.register_sources()
@@ -17,6 +20,7 @@ dr1.download_module_data()
 dr3.download_module_data()
 dr3.register_filters()
 
+# Define colors used in our analysis
 BAND_COMBOS = [
     ('csp_dr3_u', 'csp_dr3_g'),
     ('csp_dr3_g', 'csp_dr3_r'),
@@ -47,7 +51,7 @@ def get_models(model_id_list):
     for model_id in model_id_list:
         name, version = model_id.split(',')
         model = sncosmo.Model(sncosmo.get_source(name, version=version))
-        model.add_effect(sncosmo.F99Dust(), 'ext', 'rest')
+        model.add_effect(sncosmo.F99Dust(), 'mw', 'obs')
         model_list.append(model)
 
     return model_list
@@ -60,6 +64,7 @@ def run_color_15(cli_args):
     """
 
     out_dir = Path(cli_args.out_dir)
+    out_dir.mkdir(exist_ok=True, parents=True)
 
     tqdm.write('Tabulating delta color 15')
     lc_colors.tabulate_delta_15(
@@ -73,13 +78,14 @@ def run_color_15(cli_args):
 
 def run_color_chisq(cli_args):
     """Tabulate chi-squares for color evolution
+
     Args:
         cli_args (Namespace): Command line arguments
     """
 
     out_dir = Path(cli_args.out_dir) / 'color_chisq'
-
     out_dir.mkdir(exist_ok=True, parents=True)
+
     if (cli_args.start is None) or (cli_args.end is None):
         trange = None
         out_path = out_dir / 'no_limit.ecsv'
@@ -92,7 +98,7 @@ def run_color_chisq(cli_args):
     lc_colors.tabulate_chisq(
         data_release=dr3,
         models=get_models(cli_args.models),
-        band_combos=BAND_COMBOS,
+        colors=BAND_COMBOS,
         prange=trange,
         out_path=out_path)
 
@@ -101,6 +107,7 @@ def run_color_chisq(cli_args):
 
 def run_ew(cli_args):
     """Run equivalent width analysis
+
     Args:
         cli_args (Namespace): Command line arguments
     """
@@ -153,6 +160,32 @@ def run_spec_chisq(cli_args):
         trans_limit=cli_args.trans_limit,
         out_path=out_dir / file_name
     )
+    tqdm.write('\n')
+
+
+def run_band_fits(cli_args):
+    """Perform light-curve fits
+
+    Args:
+        cli_args (argparse.Namespace): Command line arguments
+    """
+
+    out_path = Path(cli_args.out_dir) / 'band_fits.ecsv'
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(cli_args.config_path) as infile:
+        config = yaml.load(infile, Loader=yaml.FullLoader)
+
+    tqdm.write('Fitting band-passes')
+    fit_func = getattr(sncosmo, cli_args.fit_func)
+    band_fitting.tabulate_band_fits(
+        data_release=dr3,
+        models=get_models(cli_args.models),
+        fit_func=fit_func,
+        config=config,
+        out_path=out_path
+    )
+
     tqdm.write('\n')
 
 
@@ -252,6 +285,22 @@ def create_parser():
         type=float,
         default=.1,
         help='Transmission cutoff applied to each band')
+
+    # For running light-curve fits
+    fitting_parser = subparsers.add_parser(
+        'band_fitting', help='Fit individual band of observed light-curves')
+
+    fitting_parser.set_defaults(func=run_band_fits)
+
+    fitting_parser.add_argument(
+        '-c', '--config_path',
+        required=True,
+        help='Path of config file with fitting priors and kwargs')
+
+    fitting_parser.add_argument(
+        '-f', '--fit_func',
+        default='fit_lc',
+        help='Name of the fitting function to use')
 
     return parser
 

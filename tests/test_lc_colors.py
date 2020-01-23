@@ -6,97 +6,95 @@
 from unittest import TestCase
 
 import numpy as np
-from astropy.table import Table, vstack
+from astropy.table import Table
 
 from analysis import lc_colors
 
 
-class Regression(TestCase):
-    """Test the gaussian regression returns a "correct" fit to the data"""
+class CreateEmptyOutputTable(TestCase):
+    """Tests for the ``create_empty_output_table`` function"""
 
     @classmethod
     def setUpClass(cls):
-        """Create dummy fluxes that are a sin wave in two bands"""
+        # Arguments passed to the tested function
+        cls.suffixes = ['_err']
+        cls.color_bands = [
+            ('survey_band1', 'survey_band2'),
+            ('survey_band3', 'survey_band4')
+        ]
 
-        x1 = np.arange(0, 4 * np.pi, .1)
-        x2 = x1 + np.pi / 4
+        # Return of the tested function
+        cls.test_table = lc_colors.create_empty_output_table(
+            cls.color_bands, suffixes=cls.suffixes)
 
-        data_1 = Table({'time': x1, 'flux': np.sin(x1)})
-        data_1['fluxerr'] = 0
-        data_1['band'] = 'sdssu'
+    def test_correct_column_names(self):
+        """Test the returned table has the correct column names"""
 
-        data_2 = Table({'time': x2, 'flux': np.sin(x2)})
-        data_2['fluxerr'] = 0
-        data_2['band'] = 'sdssg'
-
-        cls.data = vstack([data_1, data_2])
-
-    def test_band_prediction(self):
-        """Test correct flux returned for a single band"""
-
-        band_name = 'sdssu'
-        band_data = self.data[self.data['band'] == band_name]
-
-        gp = lc_colors.fit_gaussian_process(self.data)
-        gp_flux, gp_err = lc_colors.predict_band_flux(
-            gp, band_name, band_data['time'])
-
-        is_close = all(np.isclose(band_data['flux'], gp_flux))
-        self.assertTrue(is_close, 'Prediction values differ significantly')
-
-    def test_light_curve_prediction(self):
-        """Test correct flux returned for a multiple bands"""
-
-        bands = set(self.data['band'])
-        times = [self.data[self.data['band'] == b]['time'] for b in bands]
-
-        gp = lc_colors.fit_gaussian_process(self.data)
-        gp_flux, gp_err = lc_colors.predict_light_curve(gp, bands, times)
-
-        for i, band_name in enumerate(bands):
-            band_data = self.data[self.data['band'] == band_name]
-            self.assertTrue(
-                all(np.isclose(band_data['flux'], gp_flux[i])),
-                f'Prediction values differ significantly for {band_name}'
-            )
-
-
-class ChiSquared(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        """Create dummy fluxes that are constants in two bands"""
-
-        x1 = np.arange(0, 11)
-        x2 = np.arange(5, 16)
-        cls.color_time_range = (5, 10)
-
-        data_1 = Table({'time': x1})
-        data_1['flux'] = 1
-        data_1['fluxerr'] = 1
-        data_1['band'] = 'sdssu'
-
-        data_2 = Table({'time': x2})
-        data_2['flux'] = 2
-        data_2['fluxerr'] = 1
-        data_2['band'] = 'sdssg'
-
-        cls.data = vstack([data_1, data_2])
-
-    def test_observed_time_range(self):
-        """Test for the correct return for the given data"""
-
-        color_times = lc_colors.get_color_times(self.data, 'sdssu', 'sdssg')
-        self.assertSequenceEqual(self.color_time_range, color_times)
-
-    def test_create_empty_output_table(self):
-        """Test summary table has correct columns and meta data"""
-
-        band_combos = [('sdssu', 'sdssg'), ('sdssg', 'sdssr')]
         expected_cols = ['obj_id', 'source', 'version']
-        for band_tuple in band_combos:
-            col_name = '_'.join(band_tuple)
+        for band_tuple in self.color_bands:
+            col_name = '_'.join(b.split('_')[-1] for b in band_tuple)
             expected_cols += [col_name, col_name + '_err']
 
-        table = lc_colors._tabulate.create_empty_output_table(band_combos, '_err')
-        self.assertEqual(expected_cols, table.colnames, 'Wrong column names.')
+        self.assertSequenceEqual(self.test_table.colnames, expected_cols)
+
+    def test_table_is_empty(self):
+        """Test the returned table is empty"""
+
+        self.assertEqual(0, len(self.test_table))
+
+    def test_table_is_masked(self):
+        """Test the returned table is a masked table"""
+
+        self.assertTrue(self.test_table.masked)
+
+
+class GetObservedColorTimes(TestCase):
+    """Tests for the ``get_observed_color_times`` function """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a dummy table describing observation times for two bands"""
+
+        band1_times = np.arange(10, 21).tolist()
+        band2_times = np.arange(15, 26, 5).tolist()
+        combined_times = band1_times + band2_times
+
+        # Record start and end values for the overlap of band1 and band2
+        cls.simulated_overlap = 15, 20
+
+        band1_names = np.full_like(band1_times, 'band1', dtype='U50').tolist()
+        band2_names = np.full_like(band2_times, 'band2', dtype='U50').tolist()
+        combined_names = band1_names + band2_names
+
+        cls.test_table = Table(
+            names=['time', 'band'],
+            data=[combined_times, combined_names]
+        )
+
+    def test_missing_band(self):
+        """Test a ValueError is raised when passed an unobserved bandpass"""
+
+        args = (self.test_table, 'band1', 'nonexistent_band')
+        self.assertRaises(
+            ValueError, lc_colors.get_observed_color_times, *args)
+
+    def test_non_overlapping_bands(self):
+        """Test a ValueError is raised when passed an non-overlapping bands"""
+
+        # Create a table where observations in band1 and band2 do not overlap
+        new_test_table = self.test_table.copy()
+        new_test_table['time'][new_test_table['band'] == 'band1'] *= 10
+
+        args = (new_test_table, 'band1', 'band2')
+        self.assertRaises(
+            ValueError, lc_colors.get_observed_color_times, *args)
+
+    def test_recovers_correct_times(self):
+        """Test the returned start/end times match the simulated data"""
+
+        returned_overlap = lc_colors.get_observed_color_times(
+            self.test_table, 'band1', 'band2')
+
+        self.assertEqual(
+            self.simulated_overlap, returned_overlap,
+            'Incorrect start or end time returned for band overlap')

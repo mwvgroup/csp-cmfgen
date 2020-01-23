@@ -248,8 +248,3 @@ class Tabulation(TestCase):
         num_fixed_ends = len(set(fixed_ew[test_feature + '_start']))
         self.assertEqual(num_fixed_starts, 1, 'Fixed lower bounds vary')
         self.assertEqual(num_fixed_ends, 1, 'Fixed upper bounds vary')
-
-
-# Todo: Compare interpolated pew results and against published pew data
-class PEWInterpolation(TestCase):
-    pass

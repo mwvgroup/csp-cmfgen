@@ -197,7 +197,7 @@ def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
 
     for data_table in data_iter:
         obj_id = data_table.meta['obj_id']
-        z = data_table.meta['redshift']
+        z = data_table.meta['z']
         ebv = utils.get_csp_ebv(obj_id)
         t0 = utils.get_csp_t0(obj_id)
 
@@ -206,7 +206,7 @@ def tabulate_chisq(data_release, models, err_estimate=.03, features=None,
 
         for model in tqdm(models, desc='Models', position=1):
             model = deepcopy(model)
-            model.set(extebv=ebv, z=z)
+            model.set(mwebv=ebv, z=z)
 
             for t, w, f, fe in zip(obs_time, wave, flux, flux_err):
                 new_row, mask = create_new_table_row(

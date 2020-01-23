@@ -3,6 +3,8 @@
 
 """General utility functions used across the analysis package."""
 
+from copy import deepcopy
+
 import numpy as np
 import sncosmo
 from astropy.time import Time
@@ -11,24 +13,9 @@ from sndata.csp import dr1, dr3
 from .exceptions import NoCSPData
 
 
-def chisq(data, error, model):
-    """Calculate chi-squared
-
-    Args:
-        data  (ndarray): Observed values
-        error (ndarray): Observed errors
-        model (ndarray): Modeled Values
-
-    Returns:
-        sum(((data - model) / error) ** 2)
-    """
-
-    return np.sum(((data - model) / error) ** 2)
-
-
 @np.vectorize
 def convert_to_jd(date):
-    """Convert MJD and Snoopy dates into JD
+    """Convert MJD and Snoopy date formats into Julian date (JD) format
 
     Args:
         date (float): Time stamp in JD, MJD, or SNPY format
@@ -52,6 +39,45 @@ def convert_to_jd(date):
     return t.value
 
 
+def get_csp_t0(obj_id):
+    """Get the t0 value published by CSP DR3 for a given object
+
+    Args:
+        obj_id (str): The object Id value
+
+    Returns:
+        The published date of maximum in JD format
+    """
+
+    dr3.download_module_data()
+    params = dr3.load_table(3)
+    params = params[~params['T(Bmax)'].mask]  # Drop masked values
+    if obj_id not in params['SN']:
+        raise NoCSPData(f'No published t0 for {obj_id}')
+
+    # Return date in Julian date format
+    return convert_to_jd(params[params['SN'] == obj_id]['T(Bmax)'][0])
+
+
+def get_csp_ebv(obj_id):
+    """Get the E(B - V) value published by CSP DR1 for a given object
+
+    Args:
+        obj_id (str): The object Id value
+
+    Returns:
+        The published E(B - V) value
+    """
+
+    dr1.download_module_data()
+    extinction_table = dr1.load_table(1)
+    if obj_id not in extinction_table['SN']:
+        raise NoCSPData(f'No published E(B-V) for {obj_id}')
+
+    data_for_target = extinction_table[extinction_table['SN'] == obj_id]
+    return data_for_target['E(B-V)'][0]
+
+
 def filter_has_csp_data(data_table):
     """A filter function for an SNData table iterator
 
@@ -73,48 +99,7 @@ def filter_has_csp_data(data_table):
     except NoCSPData:
         return False
 
-    else:
-        return True
-
-
-def get_csp_t0(obj_id):
-    """Get the t0 value published by CSP DR3 for a given object
-
-    Args:
-        obj_id (str): The object Id value
-
-    Returns:
-        The published date of maximum in JD format
-    """
-
-    dr3.download_module_data()
-    params = dr3.load_table(3)
-    params = params[~params['T(Bmax)'].mask]
-    if obj_id not in params['SN']:
-        raise NoCSPData(f'No published t0 for {obj_id}')
-
-    # Convert MJD to JD by adding a constant offset
-    return params[params['SN'] == obj_id]['T(Bmax)'][0] + 2400000.5
-
-
-
-def get_csp_ebv(obj_id):
-    """Get the E(B - V) value published by CSP DR1 for a given object
-
-    Args:
-        obj_id (str): The object Id value
-
-    Returns:
-        The published E(B - V) value
-    """
-
-    dr1.download_module_data()
-    extinction_table = dr1.load_table(1)
-    if obj_id not in extinction_table['SN']:
-        raise NoCSPData(f'No published E(B-V) for {obj_id}')
-
-    data_for_target = extinction_table[extinction_table['SN'] == obj_id]
-    return data_for_target['E(B-V)'][0]
+    return True
 
 
 def get_effective_wavelength(band_name):
@@ -139,18 +124,55 @@ def parse_spectra_table(data):
         data (Table): A table of spectral data from sncosmo
 
     Returns:
-        A list of observed MJD dates for each spectra
-        A 2d list of wavelength values for each date
-        A 2d list of flux values for each date
+        - A sorted list of observed MJD dates for each spectra
+        - A 2d list of wavelength values for each date
+        - A 2d list of flux values for each date
     """
 
-    obs_dates = list(set(data['date']))
+    obs_dates = sorted(set(data['date']))
 
     wavelength, flux = [], []
     data.sort('wavelength')
     for date in obs_dates:
         data_for_date = data[data['date'] == date]
-        wavelength.append(data_for_date['wavelength'])
-        flux.append(data_for_date['flux'])
+        wavelength.append(np.array(data_for_date['wavelength']))
+        flux.append(np.array(data_for_date['flux']))
 
     return convert_to_jd(obs_dates), np.array(wavelength), np.array(flux)
+
+
+def calc_model_chisq(data, result, model):
+    """Calculate the chi-squared for a given data table and model
+
+    Chi-squared is calculated using parameter values from ``model``. Degrees
+    of freedom are calculated using the number of varied parameters specified
+    is the ``result`` object.
+
+    Args:
+        data    (Table): An sncosmo input table
+        model   (Model): An sncosmo Model
+        result (Result): sncosmo fitting result
+
+    Returns:
+        The un-normalized chi-squared
+        The number of data points used in the calculation
+    """
+
+    data = deepcopy(data)
+
+    # Drop any data that is not withing the model's range
+    min_band_wave = np.array([sncosmo.get_bandpass(b).minwave() for b in data['band']])
+    max_band_wave = np.array([sncosmo.get_bandpass(b).maxwave() for b in data['band']])
+    data = data[
+        (data['time'] >= model.mintime()) &
+        (data['time'] <= model.maxtime()) &
+        (min_band_wave >= model.minwave()) &
+        (max_band_wave <= model.maxwave())
+        ]
+
+    if len(data) == 0:
+        raise ValueError('No data within model range')
+
+    return sncosmo.chisq(data, model), len(data) - len(result.vparam_names)
+
+
