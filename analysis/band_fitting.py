@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 # -*- coding: UTF-8 -*-
 
-"""This module performs fits of individual bands of observed light-curves
+"""The ``band_fitting`` module performs fits of individual bands of observed light-curves
 
 Function Documentation
 ----------------------

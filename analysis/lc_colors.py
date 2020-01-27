@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-"""This module fits tabulates the chi-squared values for colors modeled by
+"""The ``lc_colors`` module fits tabulates the chi-squared values for colors modeled by
 an SNCosmo model. It also tabulates modeled and observed delta color over 15
 days.
+
+Function Documentation
+----------------------
 """
 
 from copy import deepcopy

@@ -1,7 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-"""General utility functions used across the analysis package."""
+"""The ``utils`` module provides a variety of general utility functions used across the analysis package.
+
+Usage Example
+-------------
+
+.. code-block:: python
+   :linenos:
+
+   from sndata.csp import dr3
+
+   from analysis import utils
+
+   # Convert dates from the Snoopy or MJD formats to JD format
+   dates = [350, 53350]  # snoopy and MJD respectively
+   jd_dates = utils.convert_to_jd(dates)
+   print(jd_dates)
+
+   # Get certain CSP data for a given target
+   t0 = utils.get_csp_t0(('2005kc'))
+   ebv = utils.get_csp_ebv(('2005kc'))
+
+   # Iterate over photometric data while only including targets with a published t0 and E(B-V)
+   for data in dr3.iter_data(filter_func=utils.filter_has_csp_data)
+
+Function Documentation
+----------------------
+"""
 
 from copy import deepcopy
 

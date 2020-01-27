@@ -14,9 +14,10 @@ version, release = '', ''
 
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.viewcode',  # Can add back in after code is public
+    'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinxarg.ext'
+    'sphinxarg.ext',
+    'sphinx_copybutton'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -33,7 +34,7 @@ master_doc = 'index'
 
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {}
-html_static_path = ['_static']
+html_static_path = []
 
 # -- Options for HTMLHelp output ---------------------------------------------
 

@@ -3,6 +3,9 @@
 
 """The ``equivalent_width`` module measures the pseudo equivalent widths of
 observed and modeled spectra.
+
+Function Documentation
+----------------------
 """
 
 from ._calc_ew import (

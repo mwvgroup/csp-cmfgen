@@ -63,7 +63,7 @@ class GetCSPt0(TestCase):
 
         returned_val = utils.get_csp_t0('2005kc')
         expected_val = 2453698.11
-        self.assertEquals(expected_val, returned_val)
+        self.assertEqual(expected_val, returned_val)
 
 
 class GetCSPEBV(TestCase):
@@ -80,7 +80,7 @@ class GetCSPEBV(TestCase):
 
         returned_val = utils.get_csp_ebv('2005kc')
         expected_val = 0.132
-        self.assertEquals(expected_val, returned_val)
+        self.assertEqual(expected_val, returned_val)
 
 
 class CSPDataFilter(TestCase):

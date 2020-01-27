@@ -5,6 +5,9 @@
 spectra.
 
 **This module is incomplete. It does not consider color warping.**
+
+Function Documentation
+----------------------
 """
 
 from ._chisq import calc_chisq, band_limits, tabulate_chisq

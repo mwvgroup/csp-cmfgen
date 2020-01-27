@@ -4,7 +4,7 @@
 
 from setuptools import find_packages, setup
 
-setup(name='nir_analysis',
+setup(name='analysis',
       packages=find_packages(),
       python_requires='>=3.7',
       setup_requires=['pytest-runner'],
