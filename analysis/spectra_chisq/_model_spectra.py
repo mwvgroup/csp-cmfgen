@@ -253,7 +253,7 @@ for oid in dr3.get_available_ids()[8:9]: #FIXME remove [:#] after done testing
         
         t = log_fit(tbl=table, obj_id=oid, date=date, amp=amp, av=av)
 
-#t.write('spec_fit_param_log.fits', format='fits', overwrite=True)
+t.write('spec_fit_param_log.fits', format='fits', overwrite=True)
         
 # `mdl_flux` is in observer frame
 # if `wave` and `flux` are also in observer frame, why is plot offset?
