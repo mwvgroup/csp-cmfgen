@@ -14,11 +14,12 @@ from scipy.optimize import curve_fit
 
 import sncosmo
 import sndata
-from sndata.csp import dr1, dr3
+from sndata.csp import DR1, DR3
 
 
-# Get Table 3 from DR3 paper: dr3.load_table(3)
-# If getting `not in registry` error
+dr1, dr3 = DR1(), DR3()
+dr1.download_module_data()
+dr3.download_module_data()
 dr3.register_filters(force=True)
 
 
@@ -89,7 +90,7 @@ def create_model(model, obj_id, a_v, redshift, amplitude, photo_data, t0_tbl=dr3
 def get_obs_wave_and_flux(obj_id, spectra, date):
     """ """
     
-    spectrum = spec_data[spec_data['date'] == date]
+    spectrum = spec_data[spec_data['time'] == date]
     wave = spectrum['wavelength']
     flux = spectrum['flux']
     
@@ -236,10 +237,10 @@ for oid in dr3.get_available_ids()[8:9]: #FIXME remove [:#] after done testing
     # Get spectroscopic data
     spec_data = dr1.get_data_for_id(oid)
     # Get uniques dates. Note: duplicate dates with different values in 'wavelength' column
-    dates = set(spec_data['date'])\
+    dates = set(spec_data['time'])
     # Get object specific parameters: photometric data and redshift
     photo_data = dr3.get_data_for_id(oid)
-    redshift = photo_data.meta['redshift']
+    redshift = photo_data.meta['z']
     
     for date in set(dates):
         # Observered wavelength and flux (in observer frame)
