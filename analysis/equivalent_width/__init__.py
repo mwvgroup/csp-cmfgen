@@ -16,7 +16,8 @@ from ._calc_ew import (
     get_feature_bounds,
     tabulate_peak_model_pew,
     tabulate_pew_spectra,
-    tabulate_pew_spectrum)
+    tabulate_pew_spectrum
+)
 
 __all__ = [
     'features',

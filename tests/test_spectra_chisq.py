@@ -120,7 +120,6 @@ class BandBoundaries(TestCase):
         self.assertRaises(ValueError, spectra_chisq.band_limits, *args)
 
 
-
 class OutputTable(TestCase):
     """Test the generation of an empty table for storing chi-squared data"""
 

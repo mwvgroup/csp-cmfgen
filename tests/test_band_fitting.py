@@ -142,7 +142,7 @@ class RunBandFits(TestCase):
             fit_func=sncosmo.fit_lc,
             data=cls.data,
             model=model,
-            priors= priors,
+            priors=priors,
             kwargs=dict(vparam_names=['t0', 'x0', 'x1', 'c'])
         )
 

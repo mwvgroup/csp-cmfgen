@@ -47,7 +47,8 @@ from ._lc_prediction import (
     predict_band_flux,
     predict_c_15,
     predict_color,
-    predict_light_curve)
+    predict_light_curve
+)
 from ._lc_regression import fit_gaussian_process
 
 __all__ = [

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import sncosmo
 import yaml
-from sndata.csp import dr1, dr3
+from sndata.csp import DR1, DR3
 from tqdm import tqdm
 
 from analysis import (
@@ -12,10 +12,14 @@ from analysis import (
     equivalent_width,
     lc_colors,
     models,
-    spectra_chisq)
+    spectra_chisq
+)
 
 warnings.filterwarnings('ignore')
 models.register_sources()
+
+dr1 = DR1()
+dr3 = DR3()
 dr1.download_module_data()
 dr3.download_module_data()
 dr3.register_filters()

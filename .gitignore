@@ -19,3 +19,6 @@ dist
 
 # Testing cache files
 .pytest_cache/
+
+# Figures
+notebooks/figures

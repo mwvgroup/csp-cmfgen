@@ -24,26 +24,26 @@ Usage Example
 
 .. code-block:: python
    :linenos:
-   
+
    import sncosmo
    from matplotlib import pyplot as plt
-   
+
    from analysis import models
-   
+
    # Make sncosmo aware of the sncosmo models
    models.register_sources()
-   
+
    # Initialize a CMFGEN model where the version is the model mass
    source = sncosmo.get_source('CMFGEN', version='1.04')
    model = sncosmo.Model(source=source)
-   
+
    # run the fit
    data = sncosmo.load_example_data()
    result, fitted_model = sncosmo.fit_lc(
        data, model,
        ['z', 't0', 'x0'],  # parameters of model to vary
        bounds={'z':(0.3, 0.7)})  # bounds on parameters (if any)
-   
+
    # Plot results
    fig = sncosmo.plot_lc(data, model=fitted_model, errors=result.errors)
    plt.show()
@@ -121,7 +121,7 @@ class GenericSource(sncosmo.Source):
         """
 
         path = str(self._path).replace('_grid.npz', '.npz')
-        data = np.load(path)
+        data = np.load(path, allow_pickle=True)
         return data['phase'], data['wavelength'], data['flux']
 
     def _flux(self, phase, wave):

@@ -22,11 +22,12 @@ from pathlib import Path
 
 import sfdmap
 import yaml
-from sndata.csp import dr3
+from sndata.csp import DR3
 
 sys.path.insert(0, '../')
 from analysis.utils import filter_has_csp_data
 
+dr3 = DR3()
 dr3.download_module_data()
 DUST_MAP = sfdmap.SFDMap('./schlegel98_dust_map/')
 

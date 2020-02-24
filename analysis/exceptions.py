@@ -10,7 +10,7 @@ Usage Example
    :linenos:
 
    from analysis.exceptions import NoCSPData, UnobservedFeature
-   
+
    raise NoCSPData('No data was available for a given target.')
 
    raise UnobservedFeature('A given feature is not spanned by a given spectrum.')

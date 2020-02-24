@@ -1,16 +1,3 @@
-astropy
-bokeh
-george
-matplotlib
-numpy>=1.16.4
-requests
-scipy
-sncosmo
-tqdm
-iminuit
-sndata
-pyyaml
-
 # For documentation building
 sphinx
 sphinx-argparse

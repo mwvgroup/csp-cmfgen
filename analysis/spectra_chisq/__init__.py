@@ -10,7 +10,7 @@ Function Documentation
 ----------------------
 """
 
-from ._chisq import calc_chisq, band_limits, tabulate_chisq
+from ._chisq import band_limits, calc_chisq, tabulate_chisq
 
 __all__ = [
     'band_limits',

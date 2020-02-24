@@ -8,10 +8,11 @@ from unittest import TestCase, skip
 import numpy as np
 import sncosmo
 from astropy.table import Column, Table
-from sndata.csp import dr3
+from sndata.csp import DR3
 
 from analysis import utils
 
+dr3 = DR3()
 dr3.register_filters(force=True)
 
 
@@ -143,7 +144,7 @@ class ParseSpectraTable(TestCase):
         flux = cls.spec1_flux + cls.spec2_flux
 
         test_table = Table(
-            names=['date', 'wavelength', 'flux'],
+            names=['time', 'wavelength', 'flux'],
             data=[date, wavelength, flux]
         )
 

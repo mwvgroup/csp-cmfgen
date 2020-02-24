@@ -34,9 +34,12 @@ from copy import deepcopy
 import numpy as np
 import sncosmo
 from astropy.time import Time
-from sndata.csp import dr1, dr3
+from sndata.csp import DR1, DR3
 
 from .exceptions import NoCSPData
+
+dr1 = DR1()
+dr3 = DR3()
 
 
 @np.vectorize
@@ -155,12 +158,12 @@ def parse_spectra_table(data):
         - A 2d list of flux values for each date
     """
 
-    obs_dates = sorted(set(data['date']))
+    obs_dates = sorted(set(data['time']))
 
     wavelength, flux = [], []
     data.sort('wavelength')
     for date in obs_dates:
-        data_for_date = data[data['date'] == date]
+        data_for_date = data[data['time'] == date]
         wavelength.append(np.array(data_for_date['wavelength']))
         flux.append(np.array(data_for_date['flux']))
 
@@ -200,5 +203,3 @@ def calc_model_chisq(data, result, model):
         raise ValueError('No data within model range')
 
     return sncosmo.chisq(data, model), len(data) - len(result.vparam_names)
-
-

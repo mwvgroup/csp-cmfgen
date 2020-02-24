@@ -7,11 +7,15 @@ from unittest import TestCase
 
 import numpy as np
 import sncosmo
-from sndata.csp import dr1, dr3
+from sndata.csp import DR1, DR3
 
 from analysis import equivalent_width as equiv_width
 from analysis import utils
 
+dr1 = DR1()
+dr3 = DR3()
+
+dr1.download_module_data()
 dr3.download_module_data()
 dr3.register_filters()
 
