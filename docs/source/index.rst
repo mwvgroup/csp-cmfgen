@@ -10,17 +10,14 @@ Photometric Constraints on SNe Models with LSST
 .. |travis| image:: https://www.travis-ci.com/mwvgroup/csp-cmfgen.svg?branch=master
    :target: https://www.travis-ci.com/mwvgroup/csp-cmfgen
 
-.. |cover| image:: https://coveralls.io/repos/github/mwvgroup/csp-cmfgen/badge.svg?branch=master
-   :target: https://coveralls.io/github/mwvgroup/csp-cmfgen?branch=master
-
 .. |docs| image:: https://readthedocs.org/projects/csp-cmfgen/badge/?version=latest
    :target: https://csp-cmfgen.readthedocs.io/en/latest/index.html
 
 .. rst-class:: badges
 
-   +--------------------------------------------+
-   | |python| |license| |travis| |cover| |docs| |
-   +--------------------------------------------+
+   +------------------------------------+
+   | |python| |license| |travis| |docs| |
+   +------------------------------------+
 
 This documentation provides a technical overview for the comparison of CMFGEN supernova models against observations
 taken by the Carnegie Supernova Project.
