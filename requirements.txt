@@ -2,7 +2,7 @@ astropy
 bokeh
 george
 matplotlib
-numpy>=1.16.4
+numpy>=1.18.1
 scipy
 sncosmo
 tqdm
