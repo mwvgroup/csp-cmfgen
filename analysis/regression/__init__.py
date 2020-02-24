@@ -10,12 +10,15 @@ Usage Example
 .. code-block:: python
    :linenos:
 
-   from sndata.csp import dr3
+   from sndata.csp import DR3
 
    from analysis import regression
 
-   # Load demo data as an astropy table
+   # Download demo data
+   dr3 = DR3()
    dr3.download_module_data()
+
+   # Load demo data as an astropy table
    demo_id = dr3.get_available_ids()[0]
    demo_data = dr3.get_data_for_id(demo_id)
    print(demo_data)

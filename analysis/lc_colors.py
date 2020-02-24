@@ -53,8 +53,7 @@ def get_observed_color_times(data, band1, band2):
         band2   (str): The name of a bandpass in data['band']
 
     Returns:
-        The start time
-        The end time
+        Tuple with the start and end times
     """
 
     for band_name in (band1, band2):

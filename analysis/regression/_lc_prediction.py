@@ -50,8 +50,7 @@ def predict_light_curve(gp, bands, times):
         lc = np.array([predict_band_flux(gp, band, times) for band in bands])
 
     elif np.ndim(times[0]) == 1:
-        lc = np.array(
-            [predict_band_flux(gp, b, t) for b, t in zip(bands, times)])
+        lc = np.array([predict_band_flux(gp, b, t) for b, t in zip(bands, times)])
 
     else:
         raise ValueError('Times must be a one or two dimensional list')
