@@ -72,6 +72,47 @@ def get_observed_color_times(data, band1, band2):
     return max(b1_start, b2_start), min(b1_end, b2_end)
 
 
+def build_color_time_array(data, band1, band2, width, resolution=1):
+    """Create an array of time values for which there are overlapping observations in two bands
+
+    A time value ``t`` is determined to have overlapping observations in each
+    band if there are observations taken in both bands that were each taken
+    within a window of time centered on ``t``. The width of that window is
+    set by the ``width`` parameter.
+
+    Args:
+        data       (Table): Astropy table with columns 'band' and 'time'
+        band1        (str): The name of a bandpass in data['band']
+        band2        (str): The name of a bandpass in data['band']
+        width      (float): Require overlapping values within width / 2 days
+        resolution (float): Resolution of the returned array
+
+    Returns:
+        A numpy array
+    """
+
+    color_start, color_end = get_observed_color_times(data, band1, band2)
+    time_arr = np.arange(color_start, color_end + resolution, resolution)
+
+    band1_times = data['time'][data['band'] == band1]
+    band2_times = data['time'][data['band'] == band2]
+
+    idx = []
+    good_indices = []
+    for i, t in enumerate(time_arr):
+        number_band1_obs = sum(np.abs(band1_times - t) < (width) / 2)
+        number_band2_obs = sum(np.abs(band2_times - t) < (width) / 2)
+        if number_band1_obs and number_band2_obs:
+            idx.append(i)
+
+        else:
+            good_indices.append(idx)
+            idx = []
+
+    good_indices.append(idx)
+    return [time_arr[i] for i in good_indices if len(i) > 2 / resolution]
+
+
 def calc_color_chisq(data_table, model, band1, band2, interval=1, prange=None):
     """Calculate the chi-squared for observed and modeled color
 
