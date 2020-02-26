@@ -54,7 +54,62 @@ from ._lc_regression import fit_gaussian_process
 from ..utils import get_effective_wavelength
 
 
-def predict_band_flux(gp, band_name, times):
+def neg_exponential(x, a, b, c):
+    """Negative exponential
+
+    Args:
+        x: The values to evaluate the exponential for
+        a: The scale factor of the exponential
+        b: The average of the exponential
+        c: The offset of the exponential
+
+    Returns:
+        -a * np.exp(-b * x) + c
+    """
+
+    return -a * np.exp(-b * x) + c
+
+
+def inverse_exp(x, a, b, c):
+    """Inverse of a negative exponential
+
+    Args:
+        x: The values to evaluate the exponential for
+        a: The scale factor of the exponential
+        b: The average of the exponential
+        c: The offset of the exponential
+
+    Returns:
+        np.log(a / (c - x)) / b
+    """
+
+    return np.log(a / (c - x)) / b
+
+
+def scale_errors(obs_err, reg_err, maxfev=10000):
+    """Exponentially scale regression errors to match observed errors
+
+    Fits a negative exponential (``neg_exponential``) to the observed error
+    and then uses the optimized parameters to apply the inverse of a negative
+    exponential (``inverse_exp``) to the regression errors.
+
+    Args:
+        obs_err (ndarray): The observational errors
+        reg_err (ndarray): The regression errors
+        maxfev      (int): Max number of iterations when fitting
+
+    Returns:
+        - The scaled errors
+        - The optimized parameters
+        - The covariance of the optimized parameters
+    """
+
+    exp_opt, exp_cov = curve_fit(neg_exponential, obs_err, reg_err, maxfev=maxfev)
+    scaled_errors = inverse_exp(reg_err, *exp_opt)
+    return scaled_errors, exp_opt, exp_cov
+
+
+def _predict_band_flux(gp, band_name, times):
     """Return the flux modeled by a gaussian regression in a single band
 
     Args:
@@ -73,16 +128,49 @@ def predict_band_flux(gp, band_name, times):
     return gp(predict_x_vals, return_var=True)
 
 
-def predict_light_curve(gp, bands, times):
+def predict_band_flux(gp, band_name, times, scale_data=None, maxfev=10000):
+    """Return the flux modeled by a gaussian regression in a single band
+
+    if ``scale_data`` is provided, the error estimated from the gaussian
+    regression are rescaled to match the observed errors using an exponential.
+    The ``scale_data`` argument is expected to be in sndata format.
+
+    Args:
+        gp            (GP): A fitted gaussian process
+        band_name    (str): Name of band pass to return flux for
+        times       (list): Times to predict flux for
+        scale_data (Table): Optional data to scale error estimates against
+        maxfev      (int): Max number of iterations when scaling data
+
+    Returns:
+        An array of flux values for the given times
+        The errors in each flux value
+    """
+
+    gp_flux, gp_err = _predict_band_flux(gp, band_name, times)
+
+    if scale_data:
+        band_data = scale_data[scale_data['band'] == band_name]
+        _, band_gp_err = _predict_band_flux(gp, band_name, band_data['time'])
+        band_observed_err = band_data['fluxerr']
+        _, opt_params, _ = scale_errors(band_observed_err, band_gp_err, maxfev)
+        gp_err = inverse_exp(gp_err, *opt_params)
+
+    return gp_flux, gp_err
+
+
+def predict_light_curve(gp, bands, times, scale_data=None, maxfev=10000):
     """Return the flux modeled by a gaussian regression in multiple bands
 
     Times can either be a one dimensional list of times to be used for all
     bands or a two dimensional list specifying different times per band.
 
     Args:
-        gp           (GP): A fitted gaussian process
-        bands (list[str]): Name of band passes to return flux for
-        times      (list): Times to predict flux for
+        gp            (GP): A fitted gaussian process
+        bands  (list[str]): Name of band passes to return flux for
+        times       (list): Times to predict flux for
+        scale_data (Table): Optional data to scale error estimates against
+        maxfev       (int): Max number of iterations when scaling data
 
     Returns:
         A 2d array of flux values for each band
@@ -90,10 +178,12 @@ def predict_light_curve(gp, bands, times):
     """
 
     if np.ndim(times[0]) == 0:
-        lc = np.array([predict_band_flux(gp, band, times) for band in bands])
+        args = times, scale_data, maxfev
+        lc = np.array([predict_band_flux(gp, band, *args) for band in bands])
 
     elif np.ndim(times[0]) == 1:
-        lc = np.array([predict_band_flux(gp, b, t) for b, t in zip(bands, times)])
+        args = scale_data, maxfev
+        lc = np.array([predict_band_flux(gp, b, t, *args) for b, t in zip(bands, times)])
 
     else:
         raise ValueError('Times must be a one or two dimensional list')
@@ -148,57 +238,3 @@ def predict_c_15(gp, band1, band2, t0=0):
     c15, err15 = predict_color(gp, [15 + t0], band1, band2)
     c0, err0 = predict_color(gp, [0 + t0], band1, band2)
     return c15 - c0, err15 + err0
-
-
-def neg_exponential(x, a, b, c):
-    """Negative exponential
-
-    Args:
-        x: The values to evaluate the exponential for
-        a: The scale factor of the exponential
-        b: The average of the exponential
-        c: The offset of the exponential
-
-    Returns:
-        -a * np.exp(-b * x) + c
-    """
-
-    return -a * np.exp(-b * x) + c
-
-
-def inverse_exp(x, a, b, c):
-    """Inverse of a negative exponential
-
-    Args:
-        x: The values to evaluate the exponential for
-        a: The scale factor of the exponential
-        b: The average of the exponential
-        c: The offset of the exponential
-
-    Returns:
-        np.log(a / (c - x)) / b
-    """
-
-    return np.log(a / (c - x)) / b
-
-
-def scale_errors(obs_err, reg_err, maxfev=10000):
-    """Exponentially scale regression errors to match observed errors
-
-    Fits a negative exponential (``neg_exponential``) to the observed error
-    and then uses the optimized parameters to apply the inverse of a negative
-    exponential (``inverse_exp``) to the regression errors.
-
-    Args:
-        obs_err (ndarray): The observational errors
-        reg_err (ndarray): The regression errors
-        maxfev      (int): Max number of iterations when fitting
-
-    Returns:
-        - The scaled errors
-        - The optimized parameters
-        - The covariance of the optimized parameters
-    """
-    exp_opt, exp_cov = curve_fit(neg_exponential, obs_err, reg_err, maxfev=maxfev)
-    scaled_errors = inverse_exp(reg_err, *exp_opt)
-    return scaled_errors, exp_opt, exp_cov

@@ -92,15 +92,19 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
         gp.set_parameter_vector(p)
         return -gp.grad_log_likelihood(fluxes)
 
+    guess_parameters = gp.get_parameter_vector()
     bounds = [(0, np.log(1000 ** 2))]
     if not fix_scale:
-        bounds = [(-30, 30)] + bounds
+        bounds = (
+                [(guess_parameters[0] - 10, guess_parameters[0] + 10)]
+                + bounds
+        )
 
     fit_result = minimize(
         neg_ln_like,
         gp.get_parameter_vector(),
         jac=grad_neg_ln_like,
-        bounds=bounds,
+        bounds=bounds
     )
 
     if not fit_result.success:
@@ -108,7 +112,7 @@ def fit_gaussian_process(data, fix_scale=True, length_scale=20.):
 
     gp.set_parameter_vector(fit_result.x)
 
-    # Wrap the output function to return error instead of variance
+    # Wrap the output function to return standard deviation instead of variance
     # Not included in original Avocado code
     def out_func(*args, **kwargs):
         p, pv = partial(gp.predict, fluxes)(*args, **kwargs)
