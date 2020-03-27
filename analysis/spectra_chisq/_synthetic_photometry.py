@@ -1,18 +1,20 @@
 """The ``_synthetic_photometry`` module creates a table with synthetic magnitudes and regressed magnitudes.
 
-Synthetic magnitudes are calculated using CSP R1 spectra (flux per wavelength; erg/s/cm^2/Angstrom).
+Synthetic magnitudes are calculated using CSP DR1 spectra (flux per wavelength; erg/s/cm^2/Angstrom).
 Photometric magnitudes (DR3) are regressed to the time of the spectra.
 
 Data release papers: https://sn-data.readthedocs.io/en/latest/module_docs/csp.html
 """
 
 import numpy as np
+import pandas as pd
 import sncosmo
 import sndata
 from astropy import constants as const
 from astropy import units as u
 from astropy.table import join, QTable, Table, unique, vstack
 from matplotlib import pyplot as plt
+import sys
 
 from .. import lc_colors, utils
 
@@ -37,7 +39,7 @@ def calc_synthetic_ab_mag(wavelength, flux_per_wave, transmission, err_ratio=0.0
         err_ratio (float): The fraction of the flux to take as the error
 
     Returns:
-        mag_ab (float): Synthetic AB magnitude
+        The synthetic AB magnitude
     """
 
     # Constant defined in Casagrande & VandenBerg 2014 (below Eq 4)
@@ -68,7 +70,7 @@ def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, er
 
     Output table columns:
         - obj_id
-        - date
+        - time
         - band
         - syn_mag
         - syn_flux (Jy), is flux per frequency
@@ -86,7 +88,8 @@ def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, er
         An astropy Table with synthetic photometry results
     """
 
-    spec_data = spec_data.copy()
+    # FIXME uncomment?
+    #spec_data = spec_data.copy()
 
     # Create quantity table to correctly handle squaring units
     # http://docs.astropy.org/en/latest/table/mixin_columns.html#quantity-and-qtable
@@ -94,7 +97,7 @@ def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, er
 
     # Create output table
     out_table = Table(
-        names=['obj_id', 'date', 'band', 'synth_mag', 'synth_flux_Jy'],
+        names=['obj_id', 'time', 'band', 'synth_mag', 'synth_flux_Jy'],
         dtype=['U100', float, 'U100', float, float]  # , masked=True # FIXME ?
     )
 
@@ -113,9 +116,9 @@ def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, er
 
     # Fill output table
     for band in bands:
-        for date in set(spec_data['date']):
+        for time in set(spec_data['time']):
             # Get a single spectrum
-            spectrum = spec_data[spec_data['date'] == date]
+            spectrum = spec_data[spec_data['time'] == time]
             # Get the transmission function for `band`
             transmission = sncosmo.get_bandpass(band)(spectrum['wavelength'])
             # Get synthetic AB magnitude
@@ -124,7 +127,7 @@ def tabulate_synthetic_photometry(spec_data, bands, zp_cgs=-48.60, zp_jy=8.9, er
             # Convert magnitude to flux
             syn_flux_per_freq = utils.mag_to_flux(mag=syn_mag, zp=zp_jy)  # units: Jy
             # Add data to output table
-            out_table.add_row([obj_id, date, band, syn_mag, syn_flux_per_freq])
+            out_table.add_row([obj_id, time, band, syn_mag, syn_flux_per_freq])
 
     return out_table
 
@@ -143,7 +146,7 @@ def _photometry_to_spectra_time(spec_data, phot_release):
     """
 
     out_table = Table(
-        names=['obj_id', 'date', 'band', 'photo_mag'],
+        names=['obj_id', 'time', 'band', 'photo_mag'],
         dtype=['U100', float, 'U100', float], masked=True
     )
 
@@ -158,7 +161,7 @@ def _photometry_to_spectra_time(spec_data, phot_release):
         for band in phot_release.band_names:
 
             # Get times of spectra obs
-            spec_times = id_spec_data[id_spec_data['band'] == band]['date']
+            spec_times = id_spec_data[id_spec_data['band'] == band]['time']
 
             if band in id_photo_data['band']:
                 # Interpolate band data to the spectral times
@@ -250,7 +253,7 @@ def plot_synthetic_results(observed, synthetic):
         )
 
         axis.scatter(
-            syn_band_data['date'],
+            syn_band_data['time'],
             syn_band_data['synth_mag'],
             c=f'C{i}',
             marker='s',
@@ -261,3 +264,51 @@ def plot_synthetic_results(observed, synthetic):
     axis.invert_yaxis()
     axis.legend()
     return fig, axis
+
+
+def get_synth_photo_for_id(obj_id, spec_release, phot_release, time, err_ratio=0.03, temp_flux=None, temp_spec_tbl=None, out_path=None):
+    """Get synthetic magnitudes for one object id using the flux from sncosmo model with extinction.
+    This function is used with ``_model_spectra`` module to fit extinction parameters using synthetic photometry and
+    observed photometry.
+
+    Args:
+
+    Returns:
+    """
+
+    ''' Do the following once: get photo_mag (well it will be in the final table anyway...)'''
+
+
+    if temp_flux is None:
+        # Get synthetic photometry for object id
+        spec_data = spec_release.get_data_for_id(obj_id).copy()
+        #spec_data = unique(spec_data, keys='time')
+
+    # TODO only one band is used in temp_flux.... change this. Want one fit for all bands?
+    if temp_flux is not None and temp_spec_tbl is not None:
+        # Add row with fitted flux so this can pass through synth_phot
+        # Must have same dimensions
+        spec_data=temp_spec_tbl
+        #print('------->temp spectra table: ', len(temp_spec_tbl))
+        #print('------->len temp flux: ', len(temp_flux))
+        #spec_data['flux'] = temp_flux##FIXME?
+
+    bands = phot_release.band_names
+    ##tables = [tabulate_synthetic_photometry(tbl, bands, err_ratio) for tbl in spec_data]
+    # tables = [calc_synthetic_phot(tbl, bands, err_ratio) for tbl in spec_data]
+    synthetic_photometry = tabulate_synthetic_photometry(spec_data, bands, err_ratio)
+
+    # Regress photometric data
+    obs_photometry = _photometry_to_spectra_time(
+        synthetic_photometry, phot_release)
+    # TODO
+    # Mask observed photometry by `time`... looks like it's not already masked by spec_data?
+    if time is not None:
+        tables = [obs_photometry[obs_photometry['time'] == t] for t in time]
+        obs_photometry = vstack(tables)
+    #print(obs_photometry)
+
+    # Create output table
+    combined = join(synthetic_photometry, obs_photometry, join_type='left')
+
+    return combined
