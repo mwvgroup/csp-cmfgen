@@ -3,6 +3,8 @@
 The model used is ``sncosmo.CCM89Dust``. The parameters A_v and amplitude are fit to the observed spectra. The best fit
 parameters are determined by ``scipy.optimize.curve_fit``
 The fit parameters are saved to a fits file.
+
+Currently, run this module at the command line using: "python _model_spectra.py"
 """
 
 
@@ -17,7 +19,7 @@ from sndata.csp import DR1, DR3
 
 from astropy.table import join, vstack #unique
 
-#from ._synthetic_photometry import get_synth_photofor_id FIXME uncomment if fit performed using photometry
+#from ._synthetic_photometry import get_synth_photo_for_id # FIXME uncomment if fit performed using photometry
 
 dr1, dr3 = DR1(), DR3()
 dr1.download_module_data()
@@ -148,7 +150,7 @@ def plot_spectra_and_residuals(x1, y1, x2, y2):
     # Labels
     ax1.set_ylabel('flux [ergs/(s cm^2 Angstrom)]', fontsize=14)
     ax1.legend(fontsize=14)
-    #plt.suptitle('id: {}, band: {}'.format(OID,BND), fontsize=16)
+    #plt.suptitle('id: {}, band: {}'.format(OID,BND), fontsize=14)
     # Lower plot: residuals (data - model) in lower plot
     ax2.plot(x2, y1 - y2, color='green', linestyle=' ', marker='.')
     ax2.axhline(0, color='black', linestyle=':')
@@ -181,7 +183,7 @@ def plot_spectra(x1, y1, x2, y2):
     plt.xlabel('obs frame wavelength [Angstrom]')
     plt.ylabel('flux [ergs/(s cm^2 Angstrom)]', fontsize=14)
     plt.legend(fontsize=14)
-    #plt.suptitle('id: {}, band: {}'.format(OID,BND), fontsize=16)
+    #plt.suptitle('id: {}, band: {}'.format(OID,BND), fontsize=14)
     # Lower plot: residuals (data - model) in lower plot
 
     plt.show()
@@ -211,7 +213,7 @@ def get_fit_parameters(obj_id, time, flux, model, wave, redshift, fit_u_band=Tru
     return fit_params
 
 
-def get_model_synth_mag(time, amplitude, a_v, obj_id, wave, model, redshift, spec_release, phot_release, temp_spec_tbl):
+def get_model_synth_table(time, amplitude, a_v, obj_id, wave, model, redshift, spec_release, phot_release, temp_spec_tbl, spec_data):
     """Get synthetic magnitude from modeled spectra. `time` is the first arg if `time` will be used in `curve_fit()`...
     FIXME base curve_fit() on time?
 
@@ -221,27 +223,78 @@ def get_model_synth_mag(time, amplitude, a_v, obj_id, wave, model, redshift, spe
 
     """
 
+    # FIXME this function is called many times
+
     # Get flux. Flux will be used to calculate synthetic magnitude
-    # Get flux at each time ... ? TODO 
-    all_flux = [get_model_flux(wave, amplitude, a_v, obj_id, t, model, redshift) for t in np.unique(time)]
+    # Get flux at each time. Wavelengths must be monotonically increasing
+
+    # all_flux = [get_model_flux(wave, amplitude, a_v, obj_id, t, model, redshift) for t in np.unique(time)] # time can be an array
+
+    # TODO: is it better to use lists?
+    # Get the wavelengths that were imaged at each time
+    all_flux = np.empty(len(np.unique(time)), dtype=object)
+    for i, _time in enumerate(np.unique(time)):
+        spectrum = spec_data[spec_data['time'] == _time]
+        _wave = spectrum['wavelength']
+        flux = get_model_flux(_wave, amplitude, a_v, obj_id, _time, model, redshift)
+        # Set each element with an array (dtype=object)
+        all_flux[i] = flux
+
+    # Flatten array, it will be used as a column in a table
+    mdl_flux = np.concatenate(all_flux, axis=None)
+
+    ##all_flux = get_model_flux(wave, amplitude, a_v, obj_id, np.unique(time), model, redshift)
+    ##all_flux = get_model_flux(np.unique(wave), amplitude, a_v, obj_id, np.unique(time), model, redshift)
+
     #mdl_flux = vstack(all_flux)
     # Flatten array that contains all fluxes TODO try np.flatten() ?
-    mdl_flux = np.concatenate(all_flux, axis=None)
+    ##mdl_flux = np.concatenate(all_flux, axis=None)
+
     print('----->len model flux', len(mdl_flux))
+    print('----->len spectra table', len(spec_data))
     print('----->len time', len(time))
 
     # Get synthetic magnitude using flux
-    tbl = get_synth_photo_for_id(obj_id, spec_release, phot_release, err_ratio=0.03, temp_flux=mdl_flux, temp_spec_tbl=temp_spec_tbl, out_path=None, time=time)
+    combo_tbl, spec_tbl = get_synth_photo_for_id(obj_id, spec_release, phot_release, err_ratio=0.03, temp_flux=mdl_flux, temp_spec_tbl=temp_spec_tbl,
+                                                 out_path=None, time=np.unique(time)) #TODO unique time?
     # Filter by obj_id FIXME?
-    tbl = tbl[tbl['obj_id'] == obj_id]
+    #combo_tbl = combo_tbl[combo_tbl['obj_id'] == obj_id]
     # FIXME mdl_flux should be the same length as output table...check this
-    print(tbl)
-    synth_mag = tbl['synth_mag']
+    # Remove nans; cannot use nans in `curve_fit()`  which fits using photometric and synthetic magnitudes
+    combo_tbl = combo_tbl[np.logical_not(np.isnan(combo_tbl['photo_mag']))]
+    combo_tbl = combo_tbl[np.logical_not(np.isnan(combo_tbl['synth_mag']))]
 
-    return synth_mag
+    #synth_mag = combo_tbl['synth_mag']
+
+    # TODO check that the length of this synthetic magnitude table is the same as the initial table
+
+    #return synth_mag, combo_tbl['photo_mag'] #FIXME remove second output? or split into two functions?
+
+    return combo_tbl
 
 
-def get_photo_fit_parameters(obj_id, time, model, wave, redshift, photo_mag, phot_release, spec_release, temp_spec_tbl,
+def get_model_synth_mag(time, amplitude, a_v, obj_id, wave, model, redshift, spec_release, phot_release, temp_spec_tbl, spec_data):
+    """
+    :param time:
+    :param amplitude:
+    :param a_v:
+    :param obj_id:
+    :param wave:
+    :param model:
+    :param redshift:
+    :param spec_release:
+    :param phot_release:
+    :param temp_spec_tbl:
+    :return:
+    """
+
+    tbl = get_model_synth_table(time, amplitude, a_v, obj_id, wave, model, redshift, spec_release, phot_release,
+                          temp_spec_tbl,  spec_data=spec_data)
+
+    return tbl['synth_mag']
+
+
+def get_photo_fit_parameters(obj_id, time, model, wave, redshift, photo_mag, phot_release, spec_release, temp_spec_tbl, synth_data, spec_data,
                              fit_u_band=True):
     """Get fit parameters (amplitude and Av) ...
     Fit using the photometric magnitude and the synthetic magnitude.
@@ -256,16 +309,26 @@ def get_photo_fit_parameters(obj_id, time, model, wave, redshift, photo_mag, pho
     """
 
     # `partial_synth_mag()` must be a function to perform fit using `curve_fit()`
+    # can only return synth_mag ...
     partial_synth_mag = partial(get_model_synth_mag, obj_id=obj_id, wave=wave, model=model, redshift=redshift,
-                                spec_release=spec_release, phot_release=phot_release, temp_spec_tbl=temp_spec_tbl)
-
+                                spec_release=spec_release, phot_release=phot_release, temp_spec_tbl=temp_spec_tbl, spec_data=spec_data)
 
     # Want to fit synthetic magnitude to observed magnitude at several times (time should be an array)
     # and want to perform fits for each band? (all bands imaged at each time) TODO/FIXME
     print('-----> len time used in curve_fit: ', len(time))
     print('-----> len photo_mag used in curve_fit (should be more than time if not filtering by band...: ', len(photo_mag))
+
+    # TODO check that the length of this is the same as original `synth_data`
+    tabl = get_model_synth_table(obj_id=obj_id, wave=wave, model=model, redshift=redshift,
+                                spec_release=spec_release, phot_release=phot_release, temp_spec_tbl=temp_spec_tbl, spec_data=spec_data,
+                            time=time, amplitude=10**-8, a_v=0.3)
+    print('-----> length of synthetic and photo mag: ', len(tabl), len(photo_mag))
+    photo_mag = tabl['photo_mag'] #FIXME remove; guesses for amp, av not releveant do not affect photo mag
+
     # Note: `curve_fit()` can handle duplicate numbers in `time` array
-    fit_params, cov_matrix = curve_fit(partial_synth_mag, time, photo_mag)
+    fit_params, cov_matrix = curve_fit(partial_synth_mag, time, photo_mag, p0=[10**-8, 0.42])
+
+    print('______________________________ fit parameters: ', fit_params)
 
     return fit_params
 
@@ -361,59 +424,51 @@ def fit_to_obs_photo(spec_release=dr1, phot_release=dr3):
     # SN model with Milky Way dust
     sn_model = sncosmo.Model(source='hsiao', effects=[mw_dust], effect_names=['mw'], effect_frames=['obs'])
 
-    for oid in dr3.get_available_ids()[8:9]:  # FIXME remove [:#] after done testing
+    for oid in dr3.get_available_ids()[11:12]:  # FIXME remove [:#] after done testing
 
         # Get initial table of synthetic photometry and regressed photometry
         # so that the photometry and spectra are at the same times (the spectra times)
-        # This table contains magnitudes for one SN for all observation times, need regressed times and magnitudes
-        synth_data = get_synth_photo_for_id(oid, spec_release=spec_release, phot_release=phot_release)
+        # This table contains magnitudes for one SN for all observation times; need regressed times and regressed fluxes
+        # Need spectroscopic data (wavelengths and fluxes) for synthetic photometry
+        # This table may have nans
+        _synth_data, _spec_data = get_synth_photo_for_id(obj_id=oid, spec_release=spec_release, phot_release=phot_release)
+        # spec_data = dr1.get_data_for_id(oid)
 
-        # Get spectroscopic data
-        # Need wavelengths for sncosmo `.flux()` and fluxes for synthetic photometry
-        spec_data = dr1.get_data_for_id(oid)
-        # Get object specific parameters: photometric data and redshift
-        _photo_data = dr3.get_data_for_id(oid)
-        _redshift = _photo_data.meta['z']
+        # Wavelength must be increasing when using sncosmo `flux()`, so sort by wavelength
+        _spec_data.sort('wavelength')
 
-        # At each time, all wavelengths are imaged;
-        # if I loop over time the wavelengths will be monotonically increasing (not repeating)
-        # which is a problem for sncosmo `.flux()`
-        # Note: _synthetic_photometry model loops over times, so that data table contains all times (for one obj_id)
+        # Get redshift
+        _redshift = dr3.get_data_for_id(oid).meta['z']
 
         # Get all data at same band (wavelength range TODO)
-        spectrum = spec_data # TODO filter wavelength range by band
-        # At each time, all wavelengths are observed. Get unique wavelengths because sncosmo `.flux()` requires
-        # monotonically increasing wavelengths
-        rest_frame_wave = np.unique(spectrum['wavelength'])  # Units: Angstrom
-        obs_frame_wave = rest_frame_wave * (1 + _redshift)
+        spectrum = _spec_data # TODO filter wavelength range by band? From DR3: Y-band filter (900 to 1100 nm)
+        # Get wavelengths
+        rest_frame_wave = spectrum['wavelength']  # Units: Angstrom
+        obs_frame_wave = rest_frame_wave * (1 + _redshift) # Units: Angstrom
 
-        # Remove nans; cannot use nans in `curve_fit()`  which fits using photometric and synthetic magnitudes
-        synth_data = synth_data[np.logical_not(np.isnan(synth_data['photo_mag']))]
-        synth_data = synth_data[np.logical_not(np.isnan(synth_data['synth_mag']))]
-
-        #_time = np.unique(_pdata['time'])
-        _time = synth_data['time']
-        _photo_mag = synth_data['photo_mag']
+        #_time = np.unique(synth_data['time']) # Each of the (9?) bands are imaged at each time ...
+        _time = _synth_data['time']
+        _photo_mag = _synth_data['photo_mag']
 
         # Maybe some nans from initial synthetic photometry table will not be nans with new extinction parameters;
         # include all times TODO ?
 
         # Get time, wave, etc from the same table so each array is the same length TODO
 
-        #print('------> Length of `wave`, should match # of output fluxes for particular time:', len(_wave))
-        #print('------> Length of table with fluxes:', len(spectrum))
-
         # Fit the parameters amplitude and Av in SN model
-        amp, av = get_photo_fit_parameters(obj_id=oid, time=_time, model=sn_model, wave=obs_frame_wave,
-                                           redshift=_redshift, photo_mag=_photo_mag, temp_spec_tbl=spectrum,
+        # NOTE: one spectrum in `spectrum` for each time
+        amp, av = get_photo_fit_parameters(synth_data=_synth_data, obj_id=oid, time=_time, model=sn_model, wave=obs_frame_wave,
+                                           redshift=_redshift, photo_mag=_photo_mag, temp_spec_tbl=spectrum, spec_data=_spec_data,
                                            spec_release=spec_release, phot_release=phot_release)
-        # TODO / FIXME many fits return initial parameter guesses
+        # TODO / FIXME fits return initial parameter guesses
         # FIXME time is column name?
         # What should this table contain? just SN object id and the best-fit parameters?
         # the other table has 'time'; include photometric band?
         print('SN: {}, redshift: {}, amplitude: {}, Av: {}'.format(oid, _redshift, amp, av))
 
         table.add_row((oid, amp, av))
+
+    print(table)
 
 
 # TODO move to `run_analysis.py`
