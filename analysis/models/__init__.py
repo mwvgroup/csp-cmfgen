@@ -76,6 +76,15 @@ class GenericSource(sncosmo.Source):
     param_names_latex = ['x0']  # used in plotting display
 
     def __init__(self, path, version):
+        """Load a CMFGEN spectral template from file
+
+        Args:
+            path: The path of the spectral template
+            version: The version number to assign the loaded template
+        """
+
+        super().__init__()
+
         self._path = path
         self._parameters = [1]
         self.name = 'CMFGEN'
@@ -134,7 +143,7 @@ class GenericSource(sncosmo.Source):
 
 
 # noinspection PyUnusedLocal
-def _get_model(name=None, version=None):
+def _get_source(name=None, version=None):
     """Return an SNCosmo CMFGEN source for a given model
 
     Args:
@@ -160,7 +169,7 @@ def register_sources(force=False):
         sncosmo.register_loader(
             data_class=sncosmo.Source,
             name='CMFGEN',
-            func=_get_model,
+            func=_get_source,
             version=str(version),
             force=force)
 
@@ -168,7 +177,7 @@ def register_sources(force=False):
         sncosmo.register_loader(
             data_class=sncosmo.Source,
             name='CMFGEN',
-            func=_get_model,
+            func=_get_source,
             version=float(version),
             force=force)
 
@@ -190,7 +199,7 @@ def _unzip_models():
 
 
 _unzip_models()
-SubChandra_1 = _get_model(version=1.04)
-SubChandra_2 = _get_model(version=1.02)
-Chandra = _get_model(version=1.4)
-SuperChandra = _get_model(version=1.7)
+SubChandra_1 = _get_source(version=1.04)
+SubChandra_2 = _get_source(version=1.02)
+Chandra = _get_source(version=1.4)
+SuperChandra = _get_source(version=1.7)

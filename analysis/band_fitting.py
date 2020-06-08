@@ -237,7 +237,7 @@ def _tabulate_fits_for_model(
 
 
 def tabulate_band_fits(
-        data_release, models, fit_func, config=None, out_path=None):
+        data_release, models, fit_func=sncosmo.fit_lc, config=None, out_path=None):
     """Tabulate fit results for a collection of data tables
 
     Results already written to out_path are skipped.

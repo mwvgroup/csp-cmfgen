@@ -17,7 +17,7 @@ class GetModel(TestCase):
     def assertCorrectSource(self, source_name, version):
         """Assert the returned model has the given name and version"""
 
-        returned_model = models._get_model(source_name, version=version)
+        returned_model = models._get_source(source_name, version=version)
         self.assertEqual(source_name, returned_model.name)
         self.assertEqual(version, returned_model.version)
 
@@ -69,7 +69,7 @@ class BaseSourceTestingClass(TestCase):
     def setUpClass(cls):
         cls.source_name = 'CMFGEN'
         cls.source_version = '1.4'
-        cls.source = models._get_model(cls.source_name, cls.source_version)
+        cls.source = models._get_source(cls.source_name, cls.source_version)
 
     def test_zero_flux_outside_phase_range(self):
         """Test the modeled flux outside the model's phase range is zero"""
