@@ -13,7 +13,6 @@ python:
 
 install:
   - pip install -r requirements.txt
-  - python setup.py install
 
   # Extra dependencies for running tests
   - pip install pytest
