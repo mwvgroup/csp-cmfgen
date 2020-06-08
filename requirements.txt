@@ -9,3 +9,5 @@ tqdm
 iminuit
 sndata>=0.10.0
 pyyaml
+sfdmap
+six
