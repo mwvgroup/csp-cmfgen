@@ -203,3 +203,25 @@ SubChandra_1 = _get_source(version=1.04)
 SubChandra_2 = _get_source(version=1.02)
 Chandra = _get_source(version=1.4)
 SuperChandra = _get_source(version=1.7)
+all_sources = (SubChandra_1, SubChandra_2, Chandra, SuperChandra)
+
+
+def get_models_with_ext(sources=None):
+    """Return a list of models corresponding to a list of spectral templates
+
+    Args:
+        sources (iter): A collection of sncosmo Sources. Defaults to all CMFGEN msources.
+
+    Returns:
+        A list of sncosmo Models
+    """
+
+    sources = sources if sources else all_sources
+
+    model_list = []
+    for source in sources:
+        model = sncosmo.Model(source)
+        model.add_effect(sncosmo.F99Dust(), 'mw', 'obs')
+        model_list.append(model)
+
+    return model_list

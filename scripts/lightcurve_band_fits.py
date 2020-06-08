@@ -5,42 +5,38 @@
 performed on a band-by-band basis.
 """
 
+import sys
 from pathlib import Path
 
-import sncosmo
 import yaml
 from sndata.csp import DR3
 from tqdm import tqdm
 
-from analysis import band_fitting
-from analysis import models
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from analysis import band_fitting, models
 
-# Configure data access
 dr3 = DR3()
 dr3.download_module_data()
 dr3.register_filters()
 
-# I/O settings and configuration data
+# Runtime settings
 base_dir = Path(__file__).resolve().parent
-out_path = base_dir / 'results' / 'band_fits.ecsv'
-out_path.parent.mkdir(parents=True, exist_ok=True)
+out_dir = base_dir / 'results'
+config_path = base_dir.parent / 'config' / 'csp_config.yml'
+out_path = out_dir / 'band_fits.ecsv'
+model_list = models.get_models_with_ext()
 
-config_path = base_dir.parent / 'config' / 'config.yml'
-with config_path.open() as infile:
-    config = yaml.load(infile, Loader=yaml.FullLoader)
+if __name__ == '__main__':
+    out_dir.mkdir(exist_ok=True, parents=True)
 
-# Instantiate models for fitting
-sources = [models.SubChandra_1, models.SubChandra_2, models.Chandra, models.SuperChandra]
-models = []
-for source in sources:
-    model = sncosmo.Model(source)
-    model.add_effect(sncosmo.F99Dust(), 'mw', 'obs')
-    models.append(model)
+    with config_path.open() as infile:
+        config = yaml.load(infile, Loader=yaml.FullLoader)
 
-tqdm.write('Fitting band-passes')
-band_fitting.tabulate_band_fits(
-    data_release=dr3,
-    models=models,
-    config=config,
-    out_path=out_path
-)
+    band_fitting.tabulate_band_fits(
+        data_release=dr3,
+        models=model_list,
+        config=config,
+        out_path=out_path
+    )
+
+    tqdm.write('\n')
