@@ -18,7 +18,6 @@ values typically follow the following template:
 """
 
 import sys
-from pathlib import Path
 
 import sfdmap
 import yaml
@@ -37,7 +36,7 @@ t0_dict = dict(zip(csp_measurements['SN'], csp_measurements['T(Bmax)']))
 
 if __name__ == '__main__':
     config_dict = dict()
-    for table in dr3.iter_data(filter_func=filter_has_csp_data):
+    for table in dr3.iter_data(filter_func=filter_has_csp_data, verbose=True):
         obj_id = table.meta['obj_id']
         z = table.meta['z']
         ra = table.meta['ra']
@@ -62,5 +61,5 @@ if __name__ == '__main__':
             }
         }
 
-    with open('config.yml', 'w') as out_file:
+    with open('csp_config.yml', 'w') as out_file:
         yaml.dump(config_dict, out_file)
